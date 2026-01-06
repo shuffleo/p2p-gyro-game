@@ -6,6 +6,9 @@ dist/
 dist-ssr/
 *.local
 
+# npm cache
+.npm-cache/
+
 # Logs
 logs
 *.log
