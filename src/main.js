@@ -615,13 +615,29 @@ class App {
       qrScannerContainer.classList.remove('hidden');
       
       // Start scanning
-      await this.qrManager.startQRScanner(qrVideo, (roomCode) => {
-        // Room code scanned
+      await this.qrManager.startQRScanner(qrVideo, (scannedData) => {
+        // Clean the scanned data - remove whitespace and ensure uppercase
+        let roomCode = scannedData.trim().toUpperCase();
+        
+        // Remove any non-alphanumeric characters (in case QR code has extra formatting)
+        roomCode = roomCode.replace(/[^A-Z0-9]/g, '');
+        
+        console.log('QR Code scanned - original:', scannedData, 'cleaned:', roomCode);
+        
+        // Validate the cleaned room code
+        if (!this.roomManager.validateRoomCode(roomCode)) {
+          const errorMsg = `Invalid room code scanned: "${scannedData}". Cleaned to: "${roomCode}". Please try scanning again or enter the code manually.`;
+          this.showErrorWithCopy(errorMsg);
+          return;
+        }
+        
+        // Set the cleaned room code in the input
         const input = document.getElementById('room-code-input');
         if (input) {
           input.value = roomCode;
         }
-        // Auto-join the room
+        
+        // Auto-join the room with cleaned code
         this.joinRoom(roomCode);
       });
     } catch (error) {
