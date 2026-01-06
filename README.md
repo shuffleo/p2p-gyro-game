@@ -105,25 +105,54 @@ If you need to clear a room and start fresh (useful for reusing room codes):
 
 ## Usage
 
-1. **Create/Join Room**: Enter or generate an 8-24 digit alphanumeric room code
-2. **Mobile Device**: 
-   - Join the room (permission will be requested automatically)
-   - Grant permission to access gyroscope if prompted
-   - Device will start sending gyroscope data automatically
-3. **Desktop Device**: 
-   - Join the same room
-   - Copy your Peer ID and share it with mobile device (or vice versa)
-   - Connect to peer by entering their Peer ID
-   - View the 3D visualization of the mobile device's orientation
-4. **Constraints**: Maximum 3 devices per room, maximum 1 mobile device
+### Mobile Device (Controller)
+
+1. Open the app in Chrome on your mobile device
+2. **Option A**: Enter the room code manually
+   - Type the 8-24 digit alphanumeric room code
+   - Click "Join Room"
+3. **Option B**: Scan QR code (Recommended)
+   - Click "Scan QR Code" button
+   - Allow camera access when prompted
+   - Point camera at the QR code displayed on desktop
+   - Room will join automatically after scanning
+4. Grant permission for device orientation access
+5. The device will start sending gyroscope data automatically
+6. Tilt and rotate your device to control the 3D box on desktop screens
+7. Your Peer ID is displayed on the mobile screen for reference
+
+### Desktop Device (Viewer)
+
+1. Open the app in Chrome on your desktop
+2. **Option A**: Create a new room
+   - Click "Create Room" to generate a room code
+   - Room will be created and QR code will be displayed automatically
+3. **Option B**: Join existing room
+   - Enter the room code manually, or
+   - Scan the QR code using "Scan QR Code" button
+4. Wait in the waiting room - 3D visualization starts immediately
+5. Wait for mobile device to connect (automatic peer discovery)
+6. Watch the 3D box rotate based on mobile device's gyroscope data
+7. QR code remains available in the waiting room for other devices to scan
+
+### Constraints
+
+- Maximum 3 devices per room
+- Maximum 1 mobile device per room
 
 ## Features
 
 - ✅ Real-time P2P communication via WebRTC (PeerJS)
+- ✅ Automatic peer discovery within rooms
+- ✅ QR code generation and scanning for easy room joining
 - ✅ Gyroscope data collection from mobile devices
 - ✅ 3D visualization with Three.js (rectangular box)
+  - Visualization starts in waiting room (desktop)
+  - Visualization available on mobile devices
 - ✅ Room-based system with constraints
-- ✅ Connection status indicators
+- ✅ Connection quality indicators (RTT monitoring)
+- ✅ Force delete room functionality
+- ✅ Mobile Peer ID display
 - ✅ Error handling with copy-to-clipboard for debugging
 - ✅ Responsive mobile-first UI
 - ✅ Automatic GitHub Pages deployment
@@ -144,7 +173,8 @@ p2p-gyro-game/
 │   ├── device-detector.js   # Device detection
 │   ├── webrtc-manager.js    # WebRTC connection handling
 │   ├── gyroscope-handler.js # Gyroscope data collection
-│   ├── visualization.js    # Three.js 3D visualization
+│   ├── visualization.js     # Three.js 3D visualization
+│   ├── qr-manager.js        # QR code generation and scanning
 │   ├── utils.js             # Utility functions
 │   └── styles.css           # Tailwind CSS
 ├── dist/                    # Build output
