@@ -30,16 +30,23 @@ export function copyToClipboard(text) {
  * Show error alert with copy functionality
  */
 export function showErrorWithCopy(message, title = 'Error') {
-  const fullMessage = `${title}\n\n${message}\n\nClick OK, then copy this message for debugging.`;
+  const timestamp = new Date().toISOString();
+  const fullMessage = `${title}\n\n${message}\n\nTimestamp: ${timestamp}\n\nClick OK, then copy this message for debugging.`;
+  
+  // Show alert
   alert(fullMessage);
   
   // Automatically copy error details
-  copyToClipboard(`Error: ${title}\n${message}\n\nTimestamp: ${new Date().toISOString()}`)
+  const errorDetails = `Error: ${title}\n${message}\n\nTimestamp: ${timestamp}\n\nBrowser: ${navigator.userAgent}\nURL: ${window.location.href}`;
+  
+  copyToClipboard(errorDetails)
     .then(() => {
       console.log('Error details copied to clipboard');
     })
     .catch(err => {
       console.error('Failed to copy error details:', err);
+      // Fallback: show error in console
+      console.error('Error details:', errorDetails);
     });
 }
 

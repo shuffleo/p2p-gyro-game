@@ -161,9 +161,11 @@ export class UIManager {
     const renderDevice = (device) => {
       const deviceEl = document.createElement('div');
       deviceEl.className = 'flex items-center gap-2 text-sm';
+      const statusColor = device.isMobile ? 'bg-blue-500' : 'bg-gray-500';
+      const deviceName = device.type || (device.isMobile ? 'Mobile' : 'Desktop');
       deviceEl.innerHTML = `
-        <span class="w-2 h-2 rounded-full ${device.isMobile ? 'bg-blue-500' : 'bg-gray-500'}"></span>
-        <span>${device.type} (${device.id.slice(0, 8)})</span>
+        <span class="w-2 h-2 rounded-full ${statusColor}"></span>
+        <span>${deviceName} (${device.id ? device.id.slice(0, 8) : 'unknown'})</span>
       `;
       return deviceEl;
     };

@@ -6,6 +6,7 @@ import { DeviceDetector } from './device-detector.js';
 import { WebRTCManager } from './webrtc-manager.js';
 import { GyroscopeHandler } from './gyroscope-handler.js';
 import { Visualization } from './visualization.js';
+import { showErrorWithCopy as showError } from './utils.js';
 
 class App {
   constructor() {
@@ -446,23 +447,8 @@ class App {
     this.uiManager.showLandingScreen();
   }
 
-  showErrorWithCopy(message) {
-    const errorDetails = `Error Details:\n${message}\n\nClick OK, then copy this message for debugging.`;
-    alert(errorDetails);
-    
-    // Create a temporary textarea to copy error details
-    const textarea = document.createElement('textarea');
-    textarea.value = message;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    try {
-      document.execCommand('copy');
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-    document.body.removeChild(textarea);
+  showErrorWithCopy(message, title = 'Error') {
+    showError(message, title);
   }
 }
 

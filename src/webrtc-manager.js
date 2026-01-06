@@ -182,21 +182,28 @@ export class WebRTCManager {
     let failCount = 0;
 
     this.connections.forEach((connection, peerId) => {
-      if (connection.open) {
+      if (connection && connection.open) {
         try {
           connection.send(dataString);
           successCount++;
         } catch (error) {
           console.error(`Failed to send data to ${peerId}:`, error);
           failCount++;
+          // Remove failed connection
+          this.connections.delete(peerId);
         }
       } else {
         failCount++;
+        // Remove closed connection
+        if (connection && !connection.open) {
+          this.connections.delete(peerId);
+        }
       }
     });
 
     if (failCount > 0 && successCount === 0) {
       console.error('Failed to send data to any peer');
+      this.updateConnectionStatus('error', 'No active connections');
       return false;
     }
 
