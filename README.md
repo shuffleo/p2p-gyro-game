@@ -5,10 +5,14 @@ A peer-to-peer (P2P) gyroscope-based game where mobile devices act as controller
 ## Features
 
 - **WebRTC P2P Communication**: Real-time data transfer using PeerJS
-- **3D Visualization**: Three.js rendering of gyroscope data
+- **3D Visualization**: Three.js rendering of gyroscope data (visible in waiting room and game screen)
+- **QR Code Support**: Generate QR codes for easy room joining, scan QR codes to join rooms
 - **Room-based System**: Create/join rooms with 8-24 digit alphanumeric codes
 - **Device Constraints**: Max 3 devices per room, max 1 mobile device
 - **Responsive Design**: Mobile-first UI with Tailwind CSS
+- **Connection Quality Indicators**: Real-time connection quality monitoring
+- **Automatic Peer Discovery**: Devices in the same room automatically discover and connect
+- **Force Delete Room**: Clear room data to start fresh with the same room code
 - **Chrome Optimized**: Built for Chrome browser
 
 ## Technology Stack
@@ -79,6 +83,25 @@ Once deployed, the site will be available at:
 **https://shuffleo.github.io/p2p-gyro-game/**
 
 Repository: https://github.com/shuffleo/p2p-gyro-game.git
+
+## Additional Features
+
+### Force Delete Room
+
+If you need to clear a room and start fresh (useful for reusing room codes):
+
+1. While in a room (waiting room or game screen)
+2. Click the "Force Delete" button
+3. Confirm the deletion
+4. All devices will be disconnected and room data will be cleared
+5. You can now create a new room with the same code
+
+### QR Code Management
+
+- **Generating QR Codes**: QR codes are automatically generated when you create a room
+- **QR Code Display**: QR codes are shown in the waiting room and remain available throughout the session
+- **Scanning QR Codes**: Use the "Scan QR Code" button on the landing page to scan and join rooms
+- **Camera Access**: QR scanning requires camera permissions - grant access when prompted
 
 ## Usage
 
