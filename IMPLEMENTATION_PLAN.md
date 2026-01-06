@@ -559,6 +559,74 @@ class DeviceDetector {
 6. **No Authentication**: Anyone with room code can join
 7. **GitHub Pages**: Static hosting only - no server-side logic possible
 8. **PeerJS Free Tier**: May have connection limits or rate limits
+9. **Peer Discovery**: Manual peer ID entry required (no automatic discovery mechanism)
+
+## 14. Actual Implementation Details
+
+### Peer Discovery Mechanism
+**Implementation**: Manual peer ID entry
+- Each device generates peer ID: `{roomCode}_{deviceIdSuffix}`
+- Peer IDs displayed in waiting room UI
+- Users manually copy/paste peer IDs to connect
+- **Note**: Simplified approach for static hosting compatibility
+
+### Data Protocol (Actual)
+```javascript
+// Gyroscope Data
+{
+  type: 'gyro_data',
+  timestamp: number,
+  alpha: number,  // Z-axis (0-360)
+  beta: number,   // X-axis (-180 to 180)
+  gamma: number,  // Y-axis (-90 to 90)
+  deviceId: string
+}
+```
+
+### Component Implementation Details
+
+#### App (main.js)
+- Orchestrates all components
+- Manages application lifecycle
+- Coordinates WebRTC, gyroscope, and visualization
+- Handles connection state changes
+- Routes gyroscope data to visualization
+
+#### RoomManager
+- In-memory room storage (Map)
+- localStorage persistence
+- Device tracking with timestamps
+- Automatic room cleanup
+
+#### WebRTCManager
+- PeerJS cloud signaling (0.peerjs.com)
+- STUN servers: Google public servers
+- Peer ID format: `{roomCode}_{deviceIdSuffix}`
+- Reliable data channels
+- Connection state tracking
+
+#### GyroscopeHandler
+- Auto-request permission on mobile join
+- Fallback manual permission button
+- Throttled transmission (60fps = 16ms)
+- Data normalization (handles null values)
+
+#### Visualization
+- Three.js WebGL renderer
+- BoxGeometry (2x3x0.5) representing device
+- Smooth rotation interpolation (lerp 0.1 factor)
+- Responsive canvas sizing
+- Edge lines for visibility
+
+### Testing
+- **Test Framework**: Vitest
+- **Test Environment**: happy-dom
+- **Coverage**: Unit tests for core components
+- **Test Files**: 
+  - `tests/room-manager.test.js` - Room management tests
+  - `tests/utils.test.js` - Utility function tests
+  - `tests/device-detector.test.js` - Device detection tests
+- **Test Status**: ✅ All 47 tests passing
 
 ## 14. Estimated Timeline
 
