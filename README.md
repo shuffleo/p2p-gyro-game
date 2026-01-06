@@ -83,9 +83,27 @@ Repository: https://github.com/shuffleo/p2p-gyro-game.git
 ## Usage
 
 1. **Create/Join Room**: Enter or generate an 8-24 digit alphanumeric room code
-2. **Mobile Device**: Grant permission to access gyroscope, then start sending data
-3. **Desktop Device**: View the 3D visualization of the mobile device's orientation
+2. **Mobile Device**: 
+   - Join the room (permission will be requested automatically)
+   - Grant permission to access gyroscope if prompted
+   - Device will start sending gyroscope data automatically
+3. **Desktop Device**: 
+   - Join the same room
+   - Copy your Peer ID and share it with mobile device (or vice versa)
+   - Connect to peer by entering their Peer ID
+   - View the 3D visualization of the mobile device's orientation
 4. **Constraints**: Maximum 3 devices per room, maximum 1 mobile device
+
+## Features
+
+- ✅ Real-time P2P communication via WebRTC (PeerJS)
+- ✅ Gyroscope data collection from mobile devices
+- ✅ 3D visualization with Three.js (rectangular box)
+- ✅ Room-based system with constraints
+- ✅ Connection status indicators
+- ✅ Error handling with copy-to-clipboard for debugging
+- ✅ Responsive mobile-first UI
+- ✅ Automatic GitHub Pages deployment
 
 ## Browser Support
 
@@ -114,12 +132,12 @@ p2p-gyro-game/
 ## Implementation Status
 
 - ✅ Phase 1: Project Setup & Basic UI
-- ⏳ Phase 2: Room Management System
-- ⏳ Phase 3: WebRTC Integration
-- ⏳ Phase 4: Gyroscope Data Collection
-- ⏳ Phase 5: Three.js Visualization
-- ⏳ Phase 6: Integration & Polish
-- ⏳ Phase 7: Deployment
+- ✅ Phase 2: Room Management System
+- ✅ Phase 3: WebRTC Integration (PeerJS)
+- ✅ Phase 4: Gyroscope Data Collection
+- ✅ Phase 5: Three.js Visualization
+- ✅ Phase 6: Integration & Polish
+- ✅ Phase 7: Deployment (GitHub Actions)
 
 ## License
 
