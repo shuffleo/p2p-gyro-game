@@ -19,7 +19,7 @@ export class Visualization {
     this.smoothingFactor = 0.1;
   }
 
-  initScene(container) {
+  initScene(container, canvasId = null) {
     this.container = container;
     
     // Create scene
@@ -31,10 +31,28 @@ export class Visualization {
     this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
     this.camera.position.z = 5;
     
+    // Find or create canvas
+    let canvas = null;
+    if (canvasId) {
+      canvas = document.getElementById(canvasId);
+    } else {
+      // Try default canvas IDs
+      canvas = document.getElementById('three-canvas') || 
+               document.getElementById('waiting-room-three-canvas') ||
+               document.getElementById('mobile-three-canvas');
+    }
+    
+    // Create canvas if not found
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.className = 'w-full h-full';
+      container.appendChild(canvas);
+    }
+    
     // Create renderer
     this.renderer = new THREE.WebGLRenderer({ 
       antialias: true,
-      canvas: document.getElementById('three-canvas')
+      canvas: canvas
     });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
