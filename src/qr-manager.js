@@ -47,7 +47,7 @@ export class QRManager {
       this.scanner = new QrScanner(
         videoElement,
         (result) => {
-          this.stopQRScanner();
+          // Don't stop scanner automatically - let user close it manually
           // Result is a string when returnDetailedScanResult is false
           onScan(result);
         },

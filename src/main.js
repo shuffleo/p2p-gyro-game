@@ -132,6 +132,14 @@ class App {
     
     cancelScanBtn?.addEventListener('click', () => {
       this.stopQRScanning();
+      // Clear any success messages
+      const qrScannerContainer = document.getElementById('qr-scanner-container');
+      if (qrScannerContainer) {
+        const successMsg = qrScannerContainer.querySelector('.qr-scan-success');
+        if (successMsg) {
+          successMsg.remove();
+        }
+      }
     });
 
     // Force delete room buttons
@@ -634,14 +642,45 @@ class App {
           return;
         }
         
-        // Set the cleaned room code in the input
+        // Set the cleaned room code in the input field (make sure it's visible)
         const input = document.getElementById('room-code-input');
         if (input) {
           input.value = roomCode;
+          // Trigger input event to ensure UI updates
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          // Focus the input to show the code was entered
+          input.focus();
+        }
+        
+        // Show success message
+        const qrScannerContainer = document.getElementById('qr-scanner-container');
+        if (qrScannerContainer) {
+          // Add a success indicator
+          let successMsg = qrScannerContainer.querySelector('.qr-scan-success');
+          if (!successMsg) {
+            successMsg = document.createElement('div');
+            successMsg.className = 'qr-scan-success bg-green-600 text-white px-4 py-2 rounded-lg mt-2 text-center';
+            qrScannerContainer.appendChild(successMsg);
+          }
+          successMsg.textContent = `Room code "${roomCode}" scanned! Joining room...`;
+          successMsg.classList.remove('hidden');
+          
+          // Auto-hide success message after 3 seconds
+          setTimeout(() => {
+            if (successMsg) {
+              successMsg.classList.add('hidden');
+            }
+          }, 3000);
         }
         
         // Auto-join the room with cleaned code
-        this.joinRoom(roomCode);
+        // Don't stop scanner - let user close it manually
+        this.joinRoom(roomCode).then(() => {
+          // After successful join, optionally stop scanner
+          // But we'll let the user close it manually via cancel button
+        }).catch((error) => {
+          console.error('Failed to join room after QR scan:', error);
+        });
       });
     } catch (error) {
       console.error('Failed to start QR scanner:', error);
