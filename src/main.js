@@ -631,6 +631,34 @@ class App {
     }
   }
 
+  resetQRScanner() {
+    // Reset QR scanner UI
+    const qrScannerContainer = document.getElementById('qr-scanner-container');
+    const qrScanResult = document.getElementById('qr-scan-result');
+    const cancelScanBtnInitial = document.getElementById('cancel-scan-btn-initial');
+    const qrScannedPeerIdInput = document.getElementById('qr-scanned-peer-id');
+    
+    if (qrScanResult) {
+      qrScanResult.classList.add('hidden');
+    }
+    
+    if (cancelScanBtnInitial) {
+      cancelScanBtnInitial.classList.remove('hidden');
+    }
+    
+    if (qrScannedPeerIdInput) {
+      qrScannedPeerIdInput.value = '';
+    }
+    
+    // Clear any success messages
+    if (qrScannerContainer) {
+      const successMsg = qrScannerContainer.querySelector('.qr-scan-success');
+      if (successMsg) {
+        successMsg.remove();
+      }
+    }
+  }
+
   forceDeleteRoom() {
     if (!confirm('Disconnect and reset? This will close all connections.')) {
       return;
