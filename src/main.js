@@ -131,30 +131,68 @@ class App {
     });
   }
 
-
-
-  async initializeWebRTC(roomCode, deviceId) {
+  async start() {
+    const deviceInfo = this.deviceDetector.getDeviceInfo();
+    
     try {
-      // Create WebRTC manager
-      this.webrtcManager = new WebRTCManager();
+      // Initialize WebRTC to get Peer ID
+      const peerId = await this.initializeWebRTC();
       
-      // Set up connection state callbacks
-      this.webrtcManager.onConnectionStateChange((status, message) => {
-        this.handleConnectionStateChange(status, message);
-      });
+      // Show appropriate screen based on device type
+      if (deviceInfo.isMobile) {
+        this.uiManager.showMobileGameScreen();
+        this.uiManager.updateMobileConnectionStatus('ready', 'Ready to connect');
+        // Show Peer ID on mobile
+        const mobilePeerIdDisplay = document.getElementById('mobile-peer-id');
+        if (mobilePeerIdDisplay) {
+          mobilePeerIdDisplay.textContent = peerId;
+        }
+        // Initialize gyroscope handler for mobile
+        this.initializeGyroscope(deviceInfo.id);
+        // Initialize visualization for mobile
+        this.initializeMobileVisualization();
+      } else {
+        this.uiManager.showWaitingRoom();
+        // Display Peer ID
+        const peerIdDisplay = document.getElementById('peer-id-display');
+        if (peerIdDisplay) {
+          peerIdDisplay.value = peerId;
+        }
+        // Generate and display QR code with Peer ID
+        await this.generatePeerIDQRCode(peerId);
+        // Initialize visualization in waiting room
+        this.initializeWaitingRoomVisualization();
+      }
+    } catch (error) {
+      const errorMsg = `Failed to start: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
+      this.showErrorWithCopy(errorMsg);
+    }
+  }
+
+  async initializeWebRTC() {
+    try {
+      // Create WebRTC manager if it doesn't exist
+      if (!this.webrtcManager) {
+        this.webrtcManager = new WebRTCManager();
+        
+        // Set up data received callback
+        this.webrtcManager.onDataReceived((data, peerId) => {
+          this.handleDataReceived(data, peerId);
+        });
+        
+        // Set up connection state change callback
+        this.webrtcManager.onConnectionStateChange((status, message) => {
+          this.handleConnectionStateChange(status, message);
+        });
+        
+        // Set up connection quality callback
+        this.webrtcManager.onConnectionQualityChange((peerId, quality) => {
+          this.handleConnectionQualityChange(peerId, quality);
+        });
+      }
       
-      // Set up data reception callback
-      this.webrtcManager.onDataReceived((data, peerId) => {
-        this.handleDataReceived(data, peerId);
-      });
-      
-      // Set up connection quality callback
-      this.webrtcManager.onConnectionQualityChange((peerId, quality) => {
-        this.handleConnectionQualityChange(peerId, quality);
-      });
-      
-      // Initialize peer
-      const peerId = await this.webrtcManager.initializePeer(roomCode, deviceId);
+      // Initialize peer (no room code needed)
+      const peerId = await this.webrtcManager.initializePeer();
       
       // Display peer ID in UI (both desktop and mobile)
       const peerIdDisplay = document.getElementById('your-peer-id');
@@ -170,6 +208,7 @@ class App {
       // Update connection count periodically
       this.startConnectionMonitoring();
       
+      return peerId;
     } catch (error) {
       console.error('Failed to initialize WebRTC:', error);
       const errorMsg = `WebRTC initialization failed: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
