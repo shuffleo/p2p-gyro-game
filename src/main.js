@@ -575,29 +575,11 @@ class App {
   }
 
   forceDeleteRoom() {
-    const roomCode = this.currentRoomCode || this.roomManager.getStoredRoomCode();
-    
-    if (!roomCode) {
-      alert('No room to delete');
-      return;
-    }
-
-    if (!confirm(`Force delete room "${roomCode}"? This will remove the room for all devices.`)) {
+    if (!confirm('Disconnect and reset? This will close all connections.')) {
       return;
     }
 
     try {
-      // Remove room from room manager
-      const room = this.roomManager.getRoom(roomCode);
-      if (room) {
-        // Delete all devices
-        room.devices.forEach(device => {
-          this.roomManager.leaveRoom(roomCode, device.id);
-        });
-      }
-      
-      // Clear from localStorage
-      this.roomManager.clearRoomCode();
       
       // Close all connections
       if (this.webrtcManager) {
@@ -660,8 +642,6 @@ class App {
     this.gyroscopeHandler = null;
     
     // Clear stored data
-    this.roomManager.clearRoomCode();
-    this.currentRoomCode = null;
     this.currentDeviceId = null;
     
     // Clean up visualizations
