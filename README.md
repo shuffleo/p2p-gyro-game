@@ -51,11 +51,32 @@ Output will be in the `dist/` directory.
 
 ## Deployment
 
-This project is configured for GitHub Pages deployment:
+This project uses GitHub Actions to automatically deploy to GitHub Pages.
+
+### Automatic Deployment
+
+The project is configured with GitHub Actions workflow (`.github/workflows/deploy.yml`) that:
+- Automatically builds and deploys on every push to `main` branch
+- Can be manually triggered from the Actions tab
+
+### Setup GitHub Pages (One-time)
+
+1. Go to repository Settings → Pages
+2. Under "Source", select "GitHub Actions"
+3. The workflow will automatically deploy on the next push to `main`
+
+### Manual Deployment (Alternative)
+
+If you prefer manual deployment:
 
 1. Build the project: `npm run build`
-2. Push the `dist/` directory to the `gh-pages` branch, or
+2. The `dist/` directory contains the production build
 3. Configure GitHub Pages to serve from the `dist/` directory
+
+### Access the Deployed Site
+
+Once deployed, the site will be available at:
+**https://shuffleo.github.io/p2p-gyro-game/**
 
 Repository: https://github.com/shuffleo/p2p-gyro-game.git
 
