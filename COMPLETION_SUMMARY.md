@@ -79,13 +79,13 @@ All 7 phases of the P2P Gyroscope Game have been successfully implemented and de
 
 ## Next Steps (Optional Enhancements)
 
-- [ ] Automatic peer discovery (currently manual peer ID entry)
+- [ ] QR code generation for easy peer ID sharing
 - [ ] Multiple visualization modes
 - [ ] Sound effects
 - [ ] Game history/recordings
 - [ ] Custom 3D models
 - [ ] Multi-room spectator mode
-- [ ] Improved peer discovery mechanism
+- [ ] Enhanced connection quality metrics
 
 ## Testing
 
@@ -100,10 +100,10 @@ The application has been tested for:
 
 ## Known Limitations
 
-1. **Peer Discovery**: Currently requires manual peer ID entry (can be improved with better signaling)
-2. **Browser Support**: Chrome only (as specified)
-3. **Room Persistence**: localStorage-based (per-device, not shared)
-4. **PeerJS Free Tier**: May have connection limits
+1. **Browser Support**: Chrome only (as specified)
+2. **Room Persistence**: localStorage-based (per-device, not shared)
+3. **PeerJS Free Tier**: May have connection limits
+4. **NAT Traversal**: Some networks may block P2P connections
 
 ## Documentation
 
