@@ -95,6 +95,9 @@
           <div class="text-xs text-gray-400 space-y-1">
             <p>Your Peer ID: <span id="your-peer-id" class="font-mono text-xs">-</span></p>
             <p>Connected: <span id="connected-count">0</span> peers</p>
+            <div id="connection-quality-display" class="mt-2 space-y-1">
+              <!-- Connection quality indicators will be added here -->
+            </div>
           </div>
           
           <div class="border-t border-gray-700 pt-2">
@@ -134,6 +137,9 @@
           <div class="flex items-center gap-2 text-sm">
             <span class="w-2 h-2 rounded-full bg-gray-500" id="game-status-indicator"></span>
             <span id="game-status-text">Connecting...</span>
+          </div>
+          <div id="game-connection-quality" class="text-xs text-gray-400 mt-1">
+            <!-- Connection quality will be displayed here -->
           </div>
           <div>
             <p class="text-xs text-gray-400 mb-1">Room Code:</p>

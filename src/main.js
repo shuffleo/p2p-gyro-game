@@ -183,6 +183,11 @@ class App {
         this.handleDataReceived(data, peerId);
       });
       
+      // Set up connection quality callback
+      this.webrtcManager.onConnectionQualityChange((peerId, quality) => {
+        this.handleConnectionQualityChange(peerId, quality);
+      });
+      
       // Initialize peer
       const peerId = await this.webrtcManager.initializePeer(roomCode, deviceId);
       
@@ -194,6 +199,15 @@ class App {
       
       // Start peer discovery
       this.startPeerDiscovery(roomCode);
+      
+      // Attempt to discover peers from room devices
+      const room = this.roomManager.getRoom(roomCode);
+      if (room && room.devices) {
+        // Wait a bit for peer to be fully initialized
+        setTimeout(() => {
+          this.webrtcManager.attemptPeerDiscovery(room.devices);
+        }, 1000);
+      }
       
       // Update connection count periodically
       this.startConnectionMonitoring();
@@ -207,21 +221,79 @@ class App {
   }
 
   startPeerDiscovery(roomCode) {
-    // Try to connect to other peers in the room
-    // Since we don't have a signaling server, we'll use a simple approach:
-    // Try connecting to peers that might be in the same room
-    // This is a simplified discovery - in production, you'd use a proper signaling mechanism
-    
-    // For now, we'll rely on PeerJS's built-in discovery
-    // Devices in the same room can try to connect if they know each other's peer IDs
-    // This is a limitation of the current setup - we'll improve it if needed
-    
+    // Automatic peer discovery is now handled by WebRTCManager
+    // It uses a ping/pong mechanism to discover peers in the same room
     // Update connection status
-    this.handleConnectionStateChange('connecting', 'Discovering peers...');
+    this.handleConnectionStateChange('connecting', 'Discovering peers automatically...');
     
-    // Note: Full peer discovery would require a signaling server
-    // For MVP, devices need to be aware of each other's peer IDs
-    // We can improve this later with a better discovery mechanism
+    // Try to connect to known peers from room manager
+    const room = this.roomManager.getRoom(roomCode);
+    if (room && room.devices) {
+      // Attempt connections to other devices in the room
+      // Note: We need their device IDs to construct peer IDs
+      // For now, automatic discovery relies on ping/pong mechanism
+      // Manual connection is still available as fallback
+    }
+  }
+  
+  handleConnectionQualityChange(peerId, quality) {
+    // Update UI with connection quality
+    this.updateConnectionQualityUI(peerId, quality);
+  }
+  
+  updateConnectionQualityUI(peerId, quality) {
+    const qualityDisplay = document.getElementById('connection-quality-display');
+    const gameQualityDisplay = document.getElementById('game-connection-quality');
+    
+    if (!qualityDisplay && !gameQualityDisplay) {
+      return;
+    }
+    
+    const qualityText = quality.quality || 'unknown';
+    const qualityColor = {
+      'excellent': 'text-green-400',
+      'good': 'text-green-500',
+      'fair': 'text-yellow-500',
+      'poor': 'text-red-500',
+      'unknown': 'text-gray-500'
+    }[qualityText] || 'text-gray-500';
+    
+    const qualityIcon = {
+      'excellent': '🟢',
+      'good': '🟢',
+      'fair': '🟡',
+      'poor': '🔴',
+      'unknown': '⚪'
+    }[qualityText] || '⚪';
+    
+    const rttText = quality.rtt ? ` (${Math.round(quality.rtt)}ms)` : '';
+    const qualityInfo = `${qualityIcon} ${peerId.slice(-8)}: ${qualityText}${rttText}`;
+    
+    if (qualityDisplay) {
+      // Update waiting room quality display
+      let existingEntry = qualityDisplay.querySelector(`[data-peer-id="${peerId}"]`);
+      if (!existingEntry) {
+        existingEntry = document.createElement('p');
+        existingEntry.className = `text-xs ${qualityColor}`;
+        existingEntry.setAttribute('data-peer-id', peerId);
+        qualityDisplay.appendChild(existingEntry);
+      }
+      existingEntry.textContent = qualityInfo;
+      existingEntry.className = `text-xs ${qualityColor}`;
+    }
+    
+    if (gameQualityDisplay) {
+      // Update game screen quality display
+      let existingEntry = gameQualityDisplay.querySelector(`[data-peer-id="${peerId}"]`);
+      if (!existingEntry) {
+        existingEntry = document.createElement('div');
+        existingEntry.className = `text-xs ${qualityColor}`;
+        existingEntry.setAttribute('data-peer-id', peerId);
+        gameQualityDisplay.appendChild(existingEntry);
+      }
+      existingEntry.textContent = qualityInfo;
+      existingEntry.className = `text-xs ${qualityColor}`;
+    }
   }
 
   handleConnectionStateChange(status, message) {
