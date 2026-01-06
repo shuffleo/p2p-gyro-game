@@ -594,7 +594,10 @@ class App {
     }
 
     try {
+      // Verify we're using the exact same room code for QR generation
+      console.log('Generating QR code for room code:', roomCode);
       await this.qrManager.generateQRCode(roomCode, qrDisplay);
+      console.log('QR code generated successfully for:', roomCode);
     } catch (error) {
       console.error('Failed to generate QR code:', error);
       const errorMsg = `Failed to generate QR code: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
