@@ -7,7 +7,7 @@ import { WebRTCManager } from './webrtc-manager.js';
 import { GyroscopeHandler } from './gyroscope-handler.js';
 import { Visualization } from './visualization.js';
 import { QRManager } from './qr-manager.js';
-import { showErrorWithCopy as showError } from './utils.js';
+import { showErrorWithCopy as showError, copyToClipboard } from './utils.js';
 
 class App {
   constructor() {
@@ -20,50 +20,59 @@ class App {
     this.visualization = null;
     this.mobileVisualization = null;
     this.waitingRoomVisualization = null;
+    this.currentRoomCode = null;
     this.currentDeviceId = null;
+    this.peerDiscoveryInterval = null;
     
     this.init();
   }
 
   init() {
     this.setupEventListeners();
+    this.loadStoredRoomCode();
   }
 
   setupEventListeners() {
-    // Start button - initialize WebRTC and get Peer ID
-    const startBtn = document.getElementById('start-btn');
-    startBtn?.addEventListener('click', async () => {
-      await this.start();
+    // Landing screen buttons
+    const generateBtn = document.getElementById('generate-code-btn');
+    const joinBtn = document.getElementById('join-room-btn');
+    const roomCodeInput = document.getElementById('room-code-input');
+
+    generateBtn?.addEventListener('click', () => {
+      const code = this.roomManager.generateRoomCode(8, 24);
+      roomCodeInput.value = code;
+      this.roomManager.saveRoomCode(code);
+      // Auto-join when creating room
+      this.joinRoom(code);
     });
 
-    // Copy Peer ID button (desktop)
-    const copyPeerIdBtn = document.getElementById('copy-peer-id-btn');
-    copyPeerIdBtn?.addEventListener('click', () => {
-      const peerId = document.getElementById('peer-id-display')?.value;
-      if (peerId) {
-        navigator.clipboard.writeText(peerId).then(() => {
-          const originalText = copyPeerIdBtn.textContent;
-          copyPeerIdBtn.textContent = 'Copied!';
-          setTimeout(() => {
-            copyPeerIdBtn.textContent = originalText;
-          }, 2000);
-        });
+    joinBtn?.addEventListener('click', () => {
+      const code = roomCodeInput.value.trim();
+      if (this.roomManager.validateRoomCode(code)) {
+        this.joinRoom(code);
+      } else {
+        alert('Invalid room code. Please enter 8-24 alphanumeric characters.');
       }
     });
 
-    // Copy mobile Peer ID button
-    const copyMobilePeerIdBtn = document.getElementById('copy-mobile-peer-id-btn');
-    copyMobilePeerIdBtn?.addEventListener('click', () => {
-      const peerId = document.getElementById('mobile-peer-id')?.textContent;
-      if (peerId && peerId !== '-') {
-        navigator.clipboard.writeText(peerId).then(() => {
-          const originalText = copyMobilePeerIdBtn.textContent;
-          copyMobilePeerIdBtn.textContent = 'Copied!';
-          setTimeout(() => {
-            copyMobilePeerIdBtn.textContent = originalText;
-          }, 2000);
-        });
+    // Room code input - allow Enter key
+    roomCodeInput?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        joinBtn.click();
       }
+    });
+
+    // Waiting room buttons
+    const copyCodeBtn = document.getElementById('copy-code-btn');
+    copyCodeBtn?.addEventListener('click', () => {
+      const code = document.getElementById('room-code-display').value;
+      navigator.clipboard.writeText(code).then(() => {
+        const originalText = copyCodeBtn.textContent;
+        copyCodeBtn.textContent = 'Copied!';
+        setTimeout(() => {
+          copyCodeBtn.textContent = originalText;
+        }, 2000);
+      });
     });
 
     const exitRoomBtn = document.getElementById('exit-room-btn');
@@ -121,28 +130,63 @@ class App {
       await this.startQRScanning();
     });
     
-    // Cancel scan button (initial)
-    const cancelScanBtnInitial = document.getElementById('cancel-scan-btn-initial');
-    cancelScanBtnInitial?.addEventListener('click', () => {
-      this.stopQRScanning();
-      this.resetQRScanner();
-    });
-
-    // Cancel scan button (after scan)
     cancelScanBtn?.addEventListener('click', () => {
       this.stopQRScanning();
-      this.resetQRScanner();
+      // Clear any success messages
+      const qrScannerContainer = document.getElementById('qr-scanner-container');
+      if (qrScannerContainer) {
+        const successMsg = qrScannerContainer.querySelector('.qr-scan-success');
+        if (successMsg) {
+          successMsg.remove();
+        }
+      }
     });
 
-    // Join scanned peer button
-    const joinScannedPeerBtn = document.getElementById('join-scanned-peer-btn');
-    joinScannedPeerBtn?.addEventListener('click', () => {
-      const scannedPeerId = document.getElementById('qr-scanned-peer-id')?.value.trim();
-      if (scannedPeerId) {
-        this.connectToKnownPeer(scannedPeerId);
-        // Close scanner after connecting
-        this.stopQRScanning();
-        this.resetQRScanner();
+    // Copy Peer ID buttons
+    const copyPeerIdBtn = document.getElementById('copy-peer-id-btn');
+    const copyMobilePeerIdBtn = document.getElementById('copy-mobile-peer-id-btn');
+    
+    copyPeerIdBtn?.addEventListener('click', async () => {
+      const peerIdElement = document.getElementById('your-peer-id');
+      const peerId = peerIdElement?.textContent?.trim();
+      if (peerId && peerId !== '-') {
+        try {
+          await copyToClipboard(peerId);
+          // Show feedback
+          const originalHTML = copyPeerIdBtn.innerHTML;
+          copyPeerIdBtn.innerHTML = `
+            <svg class="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          `;
+          setTimeout(() => {
+            copyPeerIdBtn.innerHTML = originalHTML;
+          }, 2000);
+        } catch (error) {
+          console.error('Failed to copy peer ID:', error);
+        }
+      }
+    });
+    
+    copyMobilePeerIdBtn?.addEventListener('click', async () => {
+      const peerIdElement = document.getElementById('mobile-peer-id');
+      const peerId = peerIdElement?.textContent?.trim();
+      if (peerId && peerId !== '-') {
+        try {
+          await copyToClipboard(peerId);
+          // Show feedback
+          const originalHTML = copyMobilePeerIdBtn.innerHTML;
+          copyMobilePeerIdBtn.innerHTML = `
+            <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          `;
+          setTimeout(() => {
+            copyMobilePeerIdBtn.innerHTML = originalHTML;
+          }, 2000);
+        } catch (error) {
+          console.error('Failed to copy peer ID:', error);
+        }
       }
     });
 
@@ -159,68 +203,86 @@ class App {
     });
   }
 
-  async start() {
+  loadStoredRoomCode() {
+    const storedCode = this.roomManager.getStoredRoomCode();
+    if (storedCode) {
+      const input = document.getElementById('room-code-input');
+      if (input) {
+        input.value = storedCode;
+      }
+    }
+  }
+
+  async joinRoom(code) {
     const deviceInfo = this.deviceDetector.getDeviceInfo();
     
+    // Check if room can be joined
+    const canJoin = this.roomManager.canJoinRoom(code, deviceInfo);
+    
+    if (!canJoin.allowed) {
+      const errorMsg = `Cannot join room: ${canJoin.reason}\n\nError details (copy for debugging):\n${JSON.stringify(canJoin, null, 2)}`;
+      this.showErrorWithCopy(errorMsg);
+      return;
+    }
+
     try {
-      // Initialize WebRTC to get Peer ID
-      const peerId = await this.initializeWebRTC();
+      // Join the room
+      const { room, device } = this.roomManager.joinRoom(code, deviceInfo);
+      
+      // Save room code and device ID
+      this.currentRoomCode = code;
+      this.currentDeviceId = device.id;
+      this.roomManager.saveRoomCode(code);
+      
+      // Update UI with connected devices
+      this.uiManager.updateDevicesList(room.devices);
+      
+      // Initialize WebRTC
+      await this.initializeWebRTC(code, device.id);
       
       // Show appropriate screen based on device type
       if (deviceInfo.isMobile) {
-        this.uiManager.showMobileGameScreen();
-        this.uiManager.updateMobileConnectionStatus('ready', 'Ready to connect');
-        // Show Peer ID on mobile
-        const mobilePeerIdDisplay = document.getElementById('mobile-peer-id');
-        if (mobilePeerIdDisplay) {
-          mobilePeerIdDisplay.textContent = peerId;
-        }
+        this.uiManager.showMobileGameScreen(code);
+        this.uiManager.updateMobileConnectionStatus('connecting', 'Connecting to peers...');
         // Initialize gyroscope handler for mobile
-        this.initializeGyroscope(deviceInfo.id);
+        this.initializeGyroscope(device.id);
         // Initialize visualization for mobile
         this.initializeMobileVisualization();
       } else {
-        this.uiManager.showWaitingRoom();
-        // Display Peer ID
-        const peerIdDisplay = document.getElementById('peer-id-display');
-        if (peerIdDisplay) {
-          peerIdDisplay.value = peerId;
-        }
-        // Generate and display QR code with Peer ID
-        await this.generatePeerIDQRCode(peerId);
+        this.uiManager.showWaitingRoom(code);
+        // Generate and display QR code
+        await this.generateRoomQRCode(code);
         // Initialize visualization in waiting room
         this.initializeWaitingRoomVisualization();
       }
     } catch (error) {
-      const errorMsg = `Failed to start: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
+      const errorMsg = `Failed to join room: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
       this.showErrorWithCopy(errorMsg);
     }
   }
 
-  async initializeWebRTC() {
+  async initializeWebRTC(roomCode, deviceId) {
     try {
-      // Create WebRTC manager if it doesn't exist
-      if (!this.webrtcManager) {
-        this.webrtcManager = new WebRTCManager();
-        
-        // Set up data received callback
-        this.webrtcManager.onDataReceived((data, peerId) => {
-          this.handleDataReceived(data, peerId);
-        });
-        
-        // Set up connection state change callback
-        this.webrtcManager.onConnectionStateChange((status, message) => {
-          this.handleConnectionStateChange(status, message);
-        });
-        
-        // Set up connection quality callback
-        this.webrtcManager.onConnectionQualityChange((peerId, quality) => {
-          this.handleConnectionQualityChange(peerId, quality);
-        });
-      }
+      // Create WebRTC manager
+      this.webrtcManager = new WebRTCManager();
       
-      // Initialize peer (no room code needed)
-      const peerId = await this.webrtcManager.initializePeer();
+      // Set up connection state callbacks
+      this.webrtcManager.onConnectionStateChange((status, message) => {
+        this.handleConnectionStateChange(status, message);
+      });
+      
+      // Set up data reception callback
+      this.webrtcManager.onDataReceived((data, peerId) => {
+        this.handleDataReceived(data, peerId);
+      });
+      
+      // Set up connection quality callback
+      this.webrtcManager.onConnectionQualityChange((peerId, quality) => {
+        this.handleConnectionQualityChange(peerId, quality);
+      });
+      
+      // Initialize peer
+      const peerId = await this.webrtcManager.initializePeer(roomCode, deviceId);
       
       // Display peer ID in UI (both desktop and mobile)
       const peerIdDisplay = document.getElementById('your-peer-id');
@@ -233,10 +295,21 @@ class App {
         mobilePeerIdDisplay.textContent = peerId;
       }
       
+      // Start peer discovery
+      this.startPeerDiscovery(roomCode);
+      
+      // Attempt to discover peers from room devices
+      const room = this.roomManager.getRoom(roomCode);
+      if (room && room.devices) {
+        // Wait a bit for peer to be fully initialized
+        setTimeout(() => {
+          this.webrtcManager.attemptPeerDiscovery(room.devices);
+        }, 1000);
+      }
+      
       // Update connection count periodically
       this.startConnectionMonitoring();
       
-      return peerId;
     } catch (error) {
       console.error('Failed to initialize WebRTC:', error);
       const errorMsg = `WebRTC initialization failed: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
@@ -245,6 +318,21 @@ class App {
     }
   }
 
+  startPeerDiscovery(roomCode) {
+    // Automatic peer discovery is now handled by WebRTCManager
+    // It uses a ping/pong mechanism to discover peers in the same room
+    // Update connection status
+    this.handleConnectionStateChange('connecting', 'Discovering peers automatically...');
+    
+    // Try to connect to known peers from room manager
+    const room = this.roomManager.getRoom(roomCode);
+    if (room && room.devices) {
+      // Attempt connections to other devices in the room
+      // Note: We need their device IDs to construct peer IDs
+      // For now, automatic discovery relies on ping/pong mechanism
+      // Manual connection is still available as fallback
+    }
+  }
   
   handleConnectionQualityChange(peerId, quality) {
     // Update UI with connection quality
@@ -322,7 +410,7 @@ class App {
         // Transition to game screen if we're in waiting room
         const waitingRoom = document.getElementById('waiting-room-screen');
         if (waitingRoom && !waitingRoom.classList.contains('hidden')) {
-          this.uiManager.showDesktopGameScreen();
+          this.uiManager.showDesktopGameScreen(this.currentRoomCode);
           // Initialize visualization
           this.initializeVisualization();
         }
@@ -555,16 +643,17 @@ class App {
     }
   }
 
-  async generatePeerIDQRCode(peerId) {
+  async generateRoomQRCode(roomCode) {
     const qrDisplay = document.getElementById('qr-code-display');
     if (!qrDisplay) {
       return;
     }
 
     try {
-      console.log('Generating QR code for Peer ID:', peerId);
-      await this.qrManager.generateQRCode(peerId, qrDisplay);
-      console.log('QR code generated successfully for Peer ID:', peerId);
+      // Verify we're using the exact same room code for QR generation
+      console.log('Generating QR code for room code:', roomCode);
+      await this.qrManager.generateQRCode(roomCode, qrDisplay);
+      console.log('QR code generated successfully for:', roomCode);
     } catch (error) {
       console.error('Failed to generate QR code:', error);
       const errorMsg = `Failed to generate QR code: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
@@ -586,34 +675,60 @@ class App {
       
       // Start scanning
       await this.qrManager.startQRScanner(qrVideo, (scannedData) => {
-        // Clean the scanned data - remove whitespace
-        let peerId = scannedData.trim();
+        // Clean the scanned data - remove whitespace and ensure uppercase
+        let roomCode = scannedData.trim().toUpperCase();
         
-        console.log('QR Code scanned - Peer ID:', peerId);
+        // Remove any non-alphanumeric characters (in case QR code has extra formatting)
+        roomCode = roomCode.replace(/[^A-Z0-9]/g, '');
         
-        // Show the scanned result UI
-        const qrScanResult = document.getElementById('qr-scan-result');
-        const qrScannedPeerIdInput = document.getElementById('qr-scanned-peer-id');
-        const cancelScanBtnInitial = document.getElementById('cancel-scan-btn-initial');
+        console.log('QR Code scanned - original:', scannedData, 'cleaned:', roomCode);
         
-        if (qrScanResult && qrScannedPeerIdInput) {
-          // Hide initial cancel button
-          if (cancelScanBtnInitial) {
-            cancelScanBtnInitial.classList.add('hidden');
-          }
-          
-          // Set the scanned Peer ID in the result input
-          qrScannedPeerIdInput.value = peerId;
-          
-          // Show the result UI with Join button
-          qrScanResult.classList.remove('hidden');
-          
-          // Also set it in the main peer ID input field (for desktop waiting room)
-          const mainPeerIdInput = document.getElementById('peer-id-input');
-          if (mainPeerIdInput) {
-            mainPeerIdInput.value = peerId;
-          }
+        // Validate the cleaned room code
+        if (!this.roomManager.validateRoomCode(roomCode)) {
+          const errorMsg = `Invalid room code scanned: "${scannedData}". Cleaned to: "${roomCode}". Please try scanning again or enter the code manually.`;
+          this.showErrorWithCopy(errorMsg);
+          return;
         }
+        
+        // Set the cleaned room code in the input field (make sure it's visible)
+        const input = document.getElementById('room-code-input');
+        if (input) {
+          input.value = roomCode;
+          // Trigger input event to ensure UI updates
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          // Focus the input to show the code was entered
+          input.focus();
+        }
+        
+        // Show success message
+        const qrScannerContainer = document.getElementById('qr-scanner-container');
+        if (qrScannerContainer) {
+          // Add a success indicator
+          let successMsg = qrScannerContainer.querySelector('.qr-scan-success');
+          if (!successMsg) {
+            successMsg = document.createElement('div');
+            successMsg.className = 'qr-scan-success bg-green-600 text-white px-4 py-2 rounded-lg mt-2 text-center';
+            qrScannerContainer.appendChild(successMsg);
+          }
+          successMsg.textContent = `Room code "${roomCode}" scanned! Joining room...`;
+          successMsg.classList.remove('hidden');
+          
+          // Auto-hide success message after 3 seconds
+          setTimeout(() => {
+            if (successMsg) {
+              successMsg.classList.add('hidden');
+            }
+          }, 3000);
+        }
+        
+        // Auto-join the room with cleaned code
+        // Don't stop scanner - let user close it manually
+        this.joinRoom(roomCode).then(() => {
+          // After successful join, optionally stop scanner
+          // But we'll let the user close it manually via cancel button
+        }).catch((error) => {
+          console.error('Failed to join room after QR scan:', error);
+        });
       });
     } catch (error) {
       console.error('Failed to start QR scanner:', error);
@@ -631,40 +746,30 @@ class App {
     }
   }
 
-  resetQRScanner() {
-    // Reset QR scanner UI
-    const qrScannerContainer = document.getElementById('qr-scanner-container');
-    const qrScanResult = document.getElementById('qr-scan-result');
-    const cancelScanBtnInitial = document.getElementById('cancel-scan-btn-initial');
-    const qrScannedPeerIdInput = document.getElementById('qr-scanned-peer-id');
-    
-    if (qrScanResult) {
-      qrScanResult.classList.add('hidden');
-    }
-    
-    if (cancelScanBtnInitial) {
-      cancelScanBtnInitial.classList.remove('hidden');
-    }
-    
-    if (qrScannedPeerIdInput) {
-      qrScannedPeerIdInput.value = '';
-    }
-    
-    // Clear any success messages
-    if (qrScannerContainer) {
-      const successMsg = qrScannerContainer.querySelector('.qr-scan-success');
-      if (successMsg) {
-        successMsg.remove();
-      }
-    }
-  }
-
   forceDeleteRoom() {
-    if (!confirm('Disconnect and reset? This will close all connections.')) {
+    const roomCode = this.currentRoomCode || this.roomManager.getStoredRoomCode();
+    
+    if (!roomCode) {
+      alert('No room to delete');
+      return;
+    }
+
+    if (!confirm(`Force delete room "${roomCode}"? This will remove the room for all devices.`)) {
       return;
     }
 
     try {
+      // Remove room from room manager
+      const room = this.roomManager.getRoom(roomCode);
+      if (room) {
+        // Delete all devices
+        room.devices.forEach(device => {
+          this.roomManager.leaveRoom(roomCode, device.id);
+        });
+      }
+      
+      // Clear from localStorage
+      this.roomManager.clearRoomCode();
       
       // Close all connections
       if (this.webrtcManager) {
@@ -691,6 +796,7 @@ class App {
       }
       
       // Clear state
+      this.currentRoomCode = null;
       this.currentDeviceId = null;
       
       // Return to landing screen
@@ -705,10 +811,20 @@ class App {
   }
 
   exitRoom() {
+    // Get current room code if available
+    const roomCode = this.currentRoomCode || this.roomManager.getStoredRoomCode();
+    const deviceId = this.currentDeviceId;
+    
     // Close WebRTC connections
     if (this.webrtcManager) {
       this.webrtcManager.closeConnection();
       this.webrtcManager = null;
+    }
+    
+    // Stop peer discovery
+    if (this.peerDiscoveryInterval) {
+      clearInterval(this.peerDiscoveryInterval);
+      this.peerDiscoveryInterval = null;
     }
     
     // Stop connection monitoring
@@ -727,6 +843,8 @@ class App {
     this.gyroscopeHandler = null;
     
     // Clear stored data
+    this.roomManager.clearRoomCode();
+    this.currentRoomCode = null;
     this.currentDeviceId = null;
     
     // Clean up visualizations
