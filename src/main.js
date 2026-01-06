@@ -27,7 +27,6 @@ class App {
 
   init() {
     this.setupEventListeners();
-    this.loadStoredRoomCode();
   }
 
   setupEventListeners() {
@@ -132,15 +131,6 @@ class App {
     });
   }
 
-  loadStoredRoomCode() {
-    const storedCode = this.roomManager.getStoredRoomCode();
-    if (storedCode) {
-      const input = document.getElementById('room-code-input');
-      if (input) {
-        input.value = storedCode;
-      }
-    }
-  }
 
 
   async initializeWebRTC(roomCode, deviceId) {
