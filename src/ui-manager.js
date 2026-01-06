@@ -14,7 +14,7 @@ export class UIManager {
     this.screens.landing?.classList.remove('hidden');
   }
 
-  showWaitingRoom(roomCode) {
+  showWaitingRoom() {
     this.hideAllScreens();
     this.screens.waitingRoom?.classList.remove('hidden');
     
@@ -26,7 +26,7 @@ export class UIManager {
     this.updateConnectionStatus('connecting', 'Connecting to peers...');
   }
 
-  showDesktopGameScreen(roomCode) {
+  showDesktopGameScreen() {
     this.hideAllScreens();
     this.screens.gameDesktop?.classList.remove('hidden');
     
@@ -38,14 +38,9 @@ export class UIManager {
     this.updateGameConnectionStatus('connecting', 'Connecting...');
   }
 
-  showMobileGameScreen(roomCode) {
+  showMobileGameScreen() {
     this.hideAllScreens();
     this.screens.gameMobile?.classList.remove('hidden');
-    
-    const mobileRoomCode = document.getElementById('mobile-room-code');
-    if (mobileRoomCode) {
-      mobileRoomCode.textContent = roomCode;
-    }
     
     // Show permission request initially
     const permissionRequest = document.getElementById('permission-request');

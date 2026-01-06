@@ -27,18 +27,13 @@ export class WebRTCManager {
     };
   }
 
-  async initializePeer(roomCode, deviceId) {
-    this.roomCode = roomCode;
-    this.deviceId = deviceId;
-    
-    // Use room code + device ID as peer ID for uniqueness
-    // PeerJS requires alphanumeric IDs, so we'll use the room code as base
-    const peerId = `${roomCode}_${deviceId.slice(-8)}`;
-    
+  async initializePeer() {
+    // Generate a random peer ID (PeerJS will assign one if we pass undefined)
+    // Using undefined lets PeerJS generate a unique ID
     return new Promise((resolve, reject) => {
       try {
-        // Initialize PeerJS peer
-        this.peer = new Peer(peerId, {
+        // Initialize PeerJS peer - let PeerJS generate the ID
+        this.peer = new Peer(undefined, {
           host: '0.peerjs.com',
           port: 443,
           path: '/',
@@ -52,8 +47,7 @@ export class WebRTCManager {
           this.updateConnectionStatus('connected', 'Peer initialized');
           console.log('PeerJS peer opened with ID:', id);
           
-          // Start automatic peer discovery
-          this.startAutomaticDiscovery();
+          // Don't start automatic discovery - we're using manual Peer ID connection
           
           resolve(id);
         });

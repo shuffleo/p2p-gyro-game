@@ -18,33 +18,12 @@
         </div>
         
         <div class="bg-gray-800 rounded-lg p-6 space-y-4">
-          <div>
-            <label for="room-code-input" class="block text-sm font-medium mb-2">
-              Room Code (8-24 alphanumeric)
-            </label>
-            <input
-              type="text"
-              id="room-code-input"
-              placeholder="Enter or generate room code"
-              maxlength="24"
-              class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-          
-          <div class="flex gap-3">
-            <button
-              id="generate-code-btn"
-              class="flex-1 bg-primary-600 hover:bg-primary-700 px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              Create Room
-            </button>
-            <button
-              id="join-room-btn"
-              class="flex-1 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              Join Room
-            </button>
-          </div>
+          <button
+            id="start-btn"
+            class="w-full bg-primary-600 hover:bg-primary-700 px-4 py-2 rounded-lg font-medium transition-colors text-lg"
+          >
+            Start
+          </button>
           
           <div class="border-t border-gray-700 pt-4">
             <button
@@ -54,7 +33,7 @@
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
               </svg>
-              Scan QR Code
+              Scan QR Code to Connect
             </button>
           </div>
           
@@ -71,7 +50,7 @@
         </div>
         
         <div class="text-center text-sm text-gray-500">
-          <p>Max 3 devices per room • Max 1 mobile device</p>
+          <p>Connect devices using Peer IDs</p>
         </div>
       </div>
     </div>
@@ -80,22 +59,22 @@
     <div id="waiting-room-screen" class="hidden flex-1 flex items-center justify-center p-4">
       <div class="w-full max-w-md space-y-6">
         <div class="text-center">
-          <h2 class="text-3xl font-bold mb-2">Waiting Room</h2>
-          <p class="text-gray-400">Share the room code with other devices</p>
+          <h2 class="text-3xl font-bold mb-2">Your Peer ID</h2>
+          <p class="text-gray-400">Share this Peer ID or QR code to connect</p>
         </div>
         
         <div class="bg-gray-800 rounded-lg p-6 space-y-4">
           <div>
-            <label class="block text-sm font-medium mb-2">Room Code</label>
+            <label class="block text-sm font-medium mb-2">Your Peer ID</label>
             <div class="flex gap-2">
               <input
                 type="text"
-                id="room-code-display"
+                id="peer-id-display"
                 readonly
-                class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"
+                class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg font-mono text-sm"
               />
               <button
-                id="copy-code-btn"
+                id="copy-peer-id-btn"
                 class="px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg font-medium transition-colors"
               >
                 Copy
@@ -108,7 +87,7 @@
             <div id="qr-code-display" class="flex justify-center p-4 bg-white rounded-lg">
               <!-- QR code will be generated here -->
             </div>
-            <p class="text-xs text-gray-400 mt-2 text-center">Scan this QR code to join the room</p>
+            <p class="text-xs text-gray-400 mt-2 text-center">Scan this QR code to connect</p>
           </div>
           
           <div>
@@ -131,18 +110,18 @@
             </div>
           </div>
           
-          <div class="border-t border-gray-700 pt-2">
-            <label class="block text-xs font-medium mb-1">Connect to Peer ID (optional)</label>
+          <div class="border-t border-gray-700 pt-4">
+            <label class="block text-sm font-medium mb-2">Connect to Peer ID</label>
             <div class="flex gap-2">
               <input
                 type="text"
                 id="peer-id-input"
-                placeholder="Enter peer ID"
-                class="flex-1 px-2 py-1 text-xs bg-gray-700 border border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
+                placeholder="Enter peer ID to connect"
+                class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono text-sm"
               />
               <button
                 id="connect-peer-btn"
-                class="px-3 py-1 text-xs bg-primary-600 hover:bg-primary-700 rounded transition-colors"
+                class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition-colors"
               >
                 Connect
               </button>
@@ -182,8 +161,6 @@
             <!-- Connection quality will be displayed here -->
           </div>
           <div>
-            <p class="text-xs text-gray-400 mb-1">Room Code:</p>
-            <p class="text-sm font-mono" id="game-room-code"></p>
           </div>
           <div>
             <p class="text-xs text-gray-400 mb-1">Connected Devices:</p>

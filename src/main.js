@@ -20,9 +20,7 @@ class App {
     this.visualization = null;
     this.mobileVisualization = null;
     this.waitingRoomVisualization = null;
-    this.currentRoomCode = null;
     this.currentDeviceId = null;
-    this.peerDiscoveryInterval = null;
     
     this.init();
   }
@@ -33,46 +31,25 @@ class App {
   }
 
   setupEventListeners() {
-    // Landing screen buttons
-    const generateBtn = document.getElementById('generate-code-btn');
-    const joinBtn = document.getElementById('join-room-btn');
-    const roomCodeInput = document.getElementById('room-code-input');
-
-    generateBtn?.addEventListener('click', () => {
-      const code = this.roomManager.generateRoomCode(8, 24);
-      roomCodeInput.value = code;
-      this.roomManager.saveRoomCode(code);
-      // Auto-join when creating room
-      this.joinRoom(code);
+    // Start button - initialize WebRTC and get Peer ID
+    const startBtn = document.getElementById('start-btn');
+    startBtn?.addEventListener('click', async () => {
+      await this.start();
     });
 
-    joinBtn?.addEventListener('click', () => {
-      const code = roomCodeInput.value.trim();
-      if (this.roomManager.validateRoomCode(code)) {
-        this.joinRoom(code);
-      } else {
-        alert('Invalid room code. Please enter 8-24 alphanumeric characters.');
+    // Copy Peer ID button
+    const copyPeerIdBtn = document.getElementById('copy-peer-id-btn');
+    copyPeerIdBtn?.addEventListener('click', () => {
+      const peerId = document.getElementById('peer-id-display')?.value;
+      if (peerId) {
+        navigator.clipboard.writeText(peerId).then(() => {
+          const originalText = copyPeerIdBtn.textContent;
+          copyPeerIdBtn.textContent = 'Copied!';
+          setTimeout(() => {
+            copyPeerIdBtn.textContent = originalText;
+          }, 2000);
+        });
       }
-    });
-
-    // Room code input - allow Enter key
-    roomCodeInput?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        joinBtn.click();
-      }
-    });
-
-    // Waiting room buttons
-    const copyCodeBtn = document.getElementById('copy-code-btn');
-    copyCodeBtn?.addEventListener('click', () => {
-      const code = document.getElementById('room-code-display').value;
-      navigator.clipboard.writeText(code).then(() => {
-        const originalText = copyCodeBtn.textContent;
-        copyCodeBtn.textContent = 'Copied!';
-        setTimeout(() => {
-          copyCodeBtn.textContent = originalText;
-        }, 2000);
-      });
     });
 
     const exitRoomBtn = document.getElementById('exit-room-btn');
@@ -165,53 +142,6 @@ class App {
     }
   }
 
-  async joinRoom(code) {
-    const deviceInfo = this.deviceDetector.getDeviceInfo();
-    
-    // Check if room can be joined
-    const canJoin = this.roomManager.canJoinRoom(code, deviceInfo);
-    
-    if (!canJoin.allowed) {
-      const errorMsg = `Cannot join room: ${canJoin.reason}\n\nError details (copy for debugging):\n${JSON.stringify(canJoin, null, 2)}`;
-      this.showErrorWithCopy(errorMsg);
-      return;
-    }
-
-    try {
-      // Join the room
-      const { room, device } = this.roomManager.joinRoom(code, deviceInfo);
-      
-      // Save room code and device ID
-      this.currentRoomCode = code;
-      this.currentDeviceId = device.id;
-      this.roomManager.saveRoomCode(code);
-      
-      // Update UI with connected devices
-      this.uiManager.updateDevicesList(room.devices);
-      
-      // Initialize WebRTC
-      await this.initializeWebRTC(code, device.id);
-      
-      // Show appropriate screen based on device type
-      if (deviceInfo.isMobile) {
-        this.uiManager.showMobileGameScreen(code);
-        this.uiManager.updateMobileConnectionStatus('connecting', 'Connecting to peers...');
-        // Initialize gyroscope handler for mobile
-        this.initializeGyroscope(device.id);
-        // Initialize visualization for mobile
-        this.initializeMobileVisualization();
-      } else {
-        this.uiManager.showWaitingRoom(code);
-        // Generate and display QR code
-        await this.generateRoomQRCode(code);
-        // Initialize visualization in waiting room
-        this.initializeWaitingRoomVisualization();
-      }
-    } catch (error) {
-      const errorMsg = `Failed to join room: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
-      this.showErrorWithCopy(errorMsg);
-    }
-  }
 
   async initializeWebRTC(roomCode, deviceId) {
     try {
@@ -247,18 +177,6 @@ class App {
         mobilePeerIdDisplay.textContent = peerId;
       }
       
-      // Start peer discovery
-      this.startPeerDiscovery(roomCode);
-      
-      // Attempt to discover peers from room devices
-      const room = this.roomManager.getRoom(roomCode);
-      if (room && room.devices) {
-        // Wait a bit for peer to be fully initialized
-        setTimeout(() => {
-          this.webrtcManager.attemptPeerDiscovery(room.devices);
-        }, 1000);
-      }
-      
       // Update connection count periodically
       this.startConnectionMonitoring();
       
@@ -270,21 +188,6 @@ class App {
     }
   }
 
-  startPeerDiscovery(roomCode) {
-    // Automatic peer discovery is now handled by WebRTCManager
-    // It uses a ping/pong mechanism to discover peers in the same room
-    // Update connection status
-    this.handleConnectionStateChange('connecting', 'Discovering peers automatically...');
-    
-    // Try to connect to known peers from room manager
-    const room = this.roomManager.getRoom(roomCode);
-    if (room && room.devices) {
-      // Attempt connections to other devices in the room
-      // Note: We need their device IDs to construct peer IDs
-      // For now, automatic discovery relies on ping/pong mechanism
-      // Manual connection is still available as fallback
-    }
-  }
   
   handleConnectionQualityChange(peerId, quality) {
     // Update UI with connection quality
@@ -362,7 +265,7 @@ class App {
         // Transition to game screen if we're in waiting room
         const waitingRoom = document.getElementById('waiting-room-screen');
         if (waitingRoom && !waitingRoom.classList.contains('hidden')) {
-          this.uiManager.showDesktopGameScreen(this.currentRoomCode);
+          this.uiManager.showDesktopGameScreen();
           // Initialize visualization
           this.initializeVisualization();
         }
@@ -595,17 +498,16 @@ class App {
     }
   }
 
-  async generateRoomQRCode(roomCode) {
+  async generatePeerIDQRCode(peerId) {
     const qrDisplay = document.getElementById('qr-code-display');
     if (!qrDisplay) {
       return;
     }
 
     try {
-      // Verify we're using the exact same room code for QR generation
-      console.log('Generating QR code for room code:', roomCode);
-      await this.qrManager.generateQRCode(roomCode, qrDisplay);
-      console.log('QR code generated successfully for:', roomCode);
+      console.log('Generating QR code for Peer ID:', peerId);
+      await this.qrManager.generateQRCode(peerId, qrDisplay);
+      console.log('QR code generated successfully for Peer ID:', peerId);
     } catch (error) {
       console.error('Failed to generate QR code:', error);
       const errorMsg = `Failed to generate QR code: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
@@ -627,25 +529,15 @@ class App {
       
       // Start scanning
       await this.qrManager.startQRScanner(qrVideo, (scannedData) => {
-        // Clean the scanned data - remove whitespace and ensure uppercase
-        let roomCode = scannedData.trim().toUpperCase();
+        // Clean the scanned data - remove whitespace
+        let peerId = scannedData.trim();
         
-        // Remove any non-alphanumeric characters (in case QR code has extra formatting)
-        roomCode = roomCode.replace(/[^A-Z0-9]/g, '');
+        console.log('QR Code scanned - Peer ID:', peerId);
         
-        console.log('QR Code scanned - original:', scannedData, 'cleaned:', roomCode);
-        
-        // Validate the cleaned room code
-        if (!this.roomManager.validateRoomCode(roomCode)) {
-          const errorMsg = `Invalid room code scanned: "${scannedData}". Cleaned to: "${roomCode}". Please try scanning again or enter the code manually.`;
-          this.showErrorWithCopy(errorMsg);
-          return;
-        }
-        
-        // Set the cleaned room code in the input field (make sure it's visible)
-        const input = document.getElementById('room-code-input');
+        // Set the Peer ID in the input field
+        const input = document.getElementById('peer-id-input');
         if (input) {
-          input.value = roomCode;
+          input.value = peerId;
           // Trigger input event to ensure UI updates
           input.dispatchEvent(new Event('input', { bubbles: true }));
           // Focus the input to show the code was entered
@@ -662,7 +554,7 @@ class App {
             successMsg.className = 'qr-scan-success bg-green-600 text-white px-4 py-2 rounded-lg mt-2 text-center';
             qrScannerContainer.appendChild(successMsg);
           }
-          successMsg.textContent = `Room code "${roomCode}" scanned! Joining room...`;
+          successMsg.textContent = `Peer ID scanned! Click Connect to connect.`;
           successMsg.classList.remove('hidden');
           
           // Auto-hide success message after 3 seconds
@@ -673,14 +565,8 @@ class App {
           }, 3000);
         }
         
-        // Auto-join the room with cleaned code
-        // Don't stop scanner - let user close it manually
-        this.joinRoom(roomCode).then(() => {
-          // After successful join, optionally stop scanner
-          // But we'll let the user close it manually via cancel button
-        }).catch((error) => {
-          console.error('Failed to join room after QR scan:', error);
-        });
+        // Don't auto-connect - let user click Connect button
+        // This gives them a chance to verify the Peer ID
       });
     } catch (error) {
       console.error('Failed to start QR scanner:', error);
@@ -748,7 +634,6 @@ class App {
       }
       
       // Clear state
-      this.currentRoomCode = null;
       this.currentDeviceId = null;
       
       // Return to landing screen
@@ -763,20 +648,10 @@ class App {
   }
 
   exitRoom() {
-    // Get current room code if available
-    const roomCode = this.currentRoomCode || this.roomManager.getStoredRoomCode();
-    const deviceId = this.currentDeviceId;
-    
     // Close WebRTC connections
     if (this.webrtcManager) {
       this.webrtcManager.closeConnection();
       this.webrtcManager = null;
-    }
-    
-    // Stop peer discovery
-    if (this.peerDiscoveryInterval) {
-      clearInterval(this.peerDiscoveryInterval);
-      this.peerDiscoveryInterval = null;
     }
     
     // Stop connection monitoring
