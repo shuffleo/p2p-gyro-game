@@ -14,7 +14,6 @@
 - **Connection Status**: Visual indicators for connection states
 - **Browser Support**: Chrome only
 - **Repository**: https://github.com/shuffleo/p2p-gyro-game.git
-- **Implementation**: Sequential phases
 
 ## 1. Project Overview
 
@@ -103,10 +102,9 @@ p2p-gyro-game/
 └── .gitignore
 ```
 
-## 5. Implementation Phases
+## 5. Implementation Components
 
-### Phase 1: Project Setup & Basic UI
-**Duration: 1-2 days**
+### Project Setup & Basic UI
 
 1. **Initialize Project**
    - Set up npm project with package.json
@@ -128,8 +126,7 @@ p2p-gyro-game/
    - Desktop-optimized layout
    - Chrome-only optimizations
 
-### Phase 2: Room Management System
-**Duration: 2-3 days**
+### Room Management System
 
 1. **Room Code System**
    - Generate random 8-24 digit alphanumeric codes by default
@@ -152,8 +149,7 @@ p2p-gyro-game/
    - Room cleanup when empty
    - Persist room state in localStorage
 
-### Phase 3: WebRTC Integration
-**Duration: 3-4 days**
+### WebRTC Integration
 
 1. **Signaling Setup with PeerJS**
    - Integrate PeerJS library (uses free cloud signaling service)
@@ -175,8 +171,7 @@ p2p-gyro-game/
    - Error handling with alert dialogs (include copy button for error messages)
    - Retry logic for failed transmissions
 
-### Phase 4: Gyroscope Data Collection
-**Duration: 2-3 days**
+### Gyroscope Data Collection
 
 1. **Permission Handling**
    - Auto-request device orientation permission on room join (Chrome)
@@ -202,8 +197,7 @@ p2p-gyro-game/
    }
    ```
 
-### Phase 5: Three.js Visualization
-**Duration: 3-4 days**
+### Three.js Visualization
 
 1. **Scene Setup**
    - Initialize Three.js scene, camera, renderer
@@ -223,8 +217,7 @@ p2p-gyro-game/
    - Optimize rendering performance (requestAnimationFrame)
    - Handle data loss/network issues gracefully (freeze last known position)
 
-### Phase 6: Integration & Polish
-**Duration: 2-3 days**
+### Integration & Polish
 
 1. **End-to-End Testing**
    - Test room creation/joining (generated and custom codes)
@@ -255,14 +248,13 @@ p2p-gyro-game/
    - Code splitting if needed
    - Debouncing/throttling for gyroscope data
 
-### Phase 7: Deployment
-**Duration: 1 day**
+### Deployment
 
 1. **GitHub Pages Setup**
    - Configure repository: https://github.com/shuffleo/p2p-gyro-game.git
    - Set up Vite build process (output to dist/)
    - Configure GitHub Pages to serve from dist/ directory
-   - Set up GitHub Actions for automatic deployment (optional)
+   - Set up GitHub Actions for automatic deployment
    - Test deployment and verify HTTPS (required for WebRTC)
 
 2. **Documentation**
@@ -630,17 +622,15 @@ class DeviceDetector {
 
 ## 14. Estimated Timeline
 
-- **Phase 1**: 1-2 days (npm, Vite, Tailwind setup)
-- **Phase 2**: 2-3 days (Room management with localStorage)
-- **Phase 3**: 3-4 days (PeerJS integration)
-- **Phase 4**: 2-3 days (Gyroscope with auto-request + fallback)
-- **Phase 5**: 3-4 days (Three.js box visualization)
-- **Phase 6**: 2-3 days (Error handling with copy buttons, status indicators)
-- **Phase 7**: 1 day (GitHub Pages deployment)
+- **Project Setup**: 1-2 days (npm, Vite, Tailwind setup)
+- **Room Management**: 2-3 days (Room management with localStorage)
+- **WebRTC Integration**: 3-4 days (PeerJS integration)
+- **Gyroscope Data Collection**: 2-3 days (Gyroscope with auto-request + fallback)
+- **Three.js Visualization**: 3-4 days (Three.js box visualization)
+- **Integration & Polish**: 2-3 days (Error handling with copy buttons, status indicators)
+- **Deployment**: 1 day (GitHub Pages deployment)
 
 **Total: 14-20 days** (assuming 1 developer, full-time)
-
-**Implementation Approach**: Sequential - complete each phase fully before moving to next
 
 ## 15. Resources & References
 
@@ -659,6 +649,6 @@ class DeviceDetector {
 **Next Steps:**
 1. Review and approve this plan
 2. Set up project structure
-3. Begin Phase 1 implementation
+3. Begin implementation
 4. Iterate based on testing and feedback
 

@@ -47,7 +47,7 @@ export class UIManager {
       mobileRoomCode.textContent = roomCode;
     }
     
-    // Show permission request initially (will be handled in Phase 4)
+    // Show permission request initially
     const permissionRequest = document.getElementById('permission-request');
     const permissionGranted = document.getElementById('permission-granted');
     

@@ -119,9 +119,9 @@ p2p-gyro-game/
 │   ├── ui-manager.js        # UI state management
 │   ├── room-manager.js      # Room management
 │   ├── device-detector.js   # Device detection
-│   ├── webrtc-manager.js    # WebRTC (Phase 3)
-│   ├── gyroscope-handler.js # Gyroscope (Phase 4)
-│   ├── visualization.js    # Three.js (Phase 5)
+│   ├── webrtc-manager.js    # WebRTC connection handling
+│   ├── gyroscope-handler.js # Gyroscope data collection
+│   ├── visualization.js    # Three.js 3D visualization
 │   ├── utils.js             # Utility functions
 │   └── styles.css           # Tailwind CSS
 ├── dist/                    # Build output
@@ -131,13 +131,13 @@ p2p-gyro-game/
 
 ## Implementation Status
 
-- ✅ Phase 1: Project Setup & Basic UI
-- ✅ Phase 2: Room Management System
-- ✅ Phase 3: WebRTC Integration (PeerJS)
-- ✅ Phase 4: Gyroscope Data Collection
-- ✅ Phase 5: Three.js Visualization
-- ✅ Phase 6: Integration & Polish
-- ✅ Phase 7: Deployment (GitHub Actions)
+- ✅ Project Setup & Basic UI
+- ✅ Room Management System
+- ✅ WebRTC Integration (PeerJS)
+- ✅ Gyroscope Data Collection
+- ✅ Three.js Visualization
+- ✅ Integration & Polish
+- ✅ Deployment (GitHub Actions)
 
 ## License
 

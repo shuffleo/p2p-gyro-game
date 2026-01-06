@@ -206,10 +206,10 @@ This document reflects the **actual implementation** as completed, with details 
 
 ## Future Enhancements
 
-1. Automatic peer discovery via room code
-2. QR code generation for easy peer ID sharing
-3. Multiple visualization modes
-4. Sound effects
-5. Connection quality indicators
-6. Reconnection logic improvements
+1. QR code generation for easy peer ID sharing
+2. Multiple visualization modes
+3. Sound effects
+4. Enhanced connection quality metrics (packet loss, bandwidth)
+5. Adaptive reconnection strategies
+6. Quality history tracking for analytics
 
