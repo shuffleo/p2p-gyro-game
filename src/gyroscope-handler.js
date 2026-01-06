@@ -1,33 +1,133 @@
-// Gyroscope Handler - To be implemented in Phase 4
-// This will handle device orientation permission and data collection
+// Gyroscope Handler - Device orientation data collection
+import { normalizeGyroData, throttle } from './utils.js';
 
 export class GyroscopeHandler {
   constructor() {
-    // Will be implemented in Phase 4
+    this.isListening = false;
+    this.callback = null;
+    this.deviceId = null;
+    this.lastData = null;
+    this.permissionGranted = false;
+    
+    // Throttle data transmission to ~60fps (16ms interval)
+    this.throttledSend = throttle((data) => {
+      if (this.callback) {
+        this.callback(data);
+      }
+    }, 16);
   }
 
   async requestPermission() {
-    // TODO: Phase 4 - Request device orientation permission
-    console.log('Gyroscope Handler - Phase 4 implementation');
-    return false;
+    // Check if DeviceOrientationEvent is supported
+    if (!window.DeviceOrientationEvent) {
+      throw new Error('DeviceOrientationEvent is not supported in this browser');
+    }
+
+    // iOS 13+ requires user gesture to request permission
+    // Try to request permission
+    try {
+      // Request permission (works in some browsers)
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        const permission = await DeviceOrientationEvent.requestPermission();
+        if (permission === 'granted') {
+          this.permissionGranted = true;
+          return true;
+        } else {
+          this.permissionGranted = false;
+          return false;
+        }
+      } else {
+        // Permission not required (Chrome, most browsers)
+        // Check if we can access orientation data
+        this.permissionGranted = true;
+        return true;
+      }
+    } catch (error) {
+      console.error('Permission request failed:', error);
+      this.permissionGranted = false;
+      return false;
+    }
   }
 
-  startListening(callback) {
-    // TODO: Phase 4 - Start listening to deviceorientation events
+  startListening(callback, deviceId) {
+    if (this.isListening) {
+      console.warn('Gyroscope is already listening');
+      return;
+    }
+
+    if (!this.permissionGranted) {
+      throw new Error('Permission not granted. Call requestPermission() first.');
+    }
+
+    this.callback = callback;
+    this.deviceId = deviceId;
+    this.isListening = true;
+
+    // Listen to deviceorientation events
+    window.addEventListener('deviceorientation', this.handleOrientation.bind(this), true);
+    
+    console.log('Gyroscope listening started');
   }
 
   stopListening() {
-    // TODO: Phase 4 - Stop listening to deviceorientation events
+    if (!this.isListening) {
+      return;
+    }
+
+    window.removeEventListener('deviceorientation', this.handleOrientation.bind(this), true);
+    
+    this.isListening = false;
+    this.callback = null;
+    this.lastData = null;
+    
+    console.log('Gyroscope listening stopped');
+  }
+
+  handleOrientation(event) {
+    if (!this.isListening) {
+      return;
+    }
+
+    // Extract orientation data
+    const { alpha, beta, gamma } = event;
+    
+    // Normalize data
+    const normalizedData = normalizeGyroData(alpha, beta, gamma);
+    
+    // Format data for transmission
+    const data = this.formatDataForTransmission(normalizedData);
+    
+    // Store last data
+    this.lastData = data;
+    
+    // Throttle transmission to avoid overwhelming network
+    this.throttledSend(data);
   }
 
   normalizeData(alpha, beta, gamma) {
-    // TODO: Phase 4 - Normalize gyroscope data
-    return { alpha: 0, beta: 0, gamma: 0 };
+    return normalizeGyroData(alpha, beta, gamma);
   }
 
   formatDataForTransmission(data) {
-    // TODO: Phase 4 - Format data for WebRTC transmission
-    return data;
+    return {
+      type: 'gyro_data',
+      timestamp: Date.now(),
+      alpha: data.alpha,
+      beta: data.beta,
+      gamma: data.gamma,
+      deviceId: this.deviceId,
+    };
+  }
+
+  getLastData() {
+    return this.lastData;
+  }
+
+  isPermissionGranted() {
+    return this.permissionGranted;
+  }
+
+  getListeningState() {
+    return this.isListening;
   }
 }
-

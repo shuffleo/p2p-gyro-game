@@ -3,12 +3,21 @@ import './styles.css';
 import { UIManager } from './ui-manager.js';
 import { RoomManager } from './room-manager.js';
 import { DeviceDetector } from './device-detector.js';
+import { WebRTCManager } from './webrtc-manager.js';
+import { GyroscopeHandler } from './gyroscope-handler.js';
+import { Visualization } from './visualization.js';
 
 class App {
   constructor() {
     this.uiManager = new UIManager();
     this.roomManager = new RoomManager();
     this.deviceDetector = new DeviceDetector();
+    this.webrtcManager = null;
+    this.gyroscopeHandler = null;
+    this.visualization = null;
+    this.currentRoomCode = null;
+    this.currentDeviceId = null;
+    this.peerDiscoveryInterval = null;
     
     this.init();
   }
@@ -64,6 +73,24 @@ class App {
       this.exitRoom();
     });
 
+    // Peer connection button
+    const connectPeerBtn = document.getElementById('connect-peer-btn');
+    const peerIdInput = document.getElementById('peer-id-input');
+    
+    connectPeerBtn?.addEventListener('click', () => {
+      const peerId = peerIdInput?.value.trim();
+      if (peerId) {
+        this.connectToKnownPeer(peerId);
+        peerIdInput.value = '';
+      }
+    });
+
+    peerIdInput?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        connectPeerBtn.click();
+      }
+    });
+
     // Game screen buttons
     const exitGameBtn = document.getElementById('exit-game-btn');
     exitGameBtn?.addEventListener('click', () => {
@@ -72,15 +99,13 @@ class App {
 
     // Mobile game screen buttons
     const requestPermissionBtn = document.getElementById('request-permission-btn');
-    requestPermissionBtn?.addEventListener('click', () => {
-      // Will be implemented in Phase 4
-      console.log('Request permission clicked');
+    requestPermissionBtn?.addEventListener('click', async () => {
+      await this.requestGyroscopePermission();
     });
 
     const stopSendingBtn = document.getElementById('stop-sending-btn');
     stopSendingBtn?.addEventListener('click', () => {
-      // Will be implemented in Phase 4
-      console.log('Stop sending clicked');
+      this.stopGyroscope();
     });
 
     const exitMobileBtn = document.getElementById('exit-mobile-btn');
@@ -115,18 +140,26 @@ class App {
       // Join the room
       const { room, device } = this.roomManager.joinRoom(code, deviceInfo);
       
-      // Save room code
+      // Save room code and device ID
+      this.currentRoomCode = code;
+      this.currentDeviceId = device.id;
       this.roomManager.saveRoomCode(code);
       
       // Update UI with connected devices
       this.uiManager.updateDevicesList(room.devices);
       
+      // Initialize WebRTC
+      await this.initializeWebRTC(code, device.id);
+      
       // Show appropriate screen based on device type
       if (deviceInfo.isMobile) {
         this.uiManager.showMobileGameScreen(code);
+        this.uiManager.updateMobileConnectionStatus('connecting', 'Connecting to peers...');
+        // Initialize gyroscope handler for mobile
+        this.initializeGyroscope(device.id);
       } else {
         this.uiManager.showWaitingRoom(code);
-        // Will transition to game screen when connections are established (Phase 3)
+        // Will transition to game screen when connections are established
       }
     } catch (error) {
       const errorMsg = `Failed to join room: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
@@ -134,20 +167,281 @@ class App {
     }
   }
 
-  exitRoom() {
-    // Get current room code if available
-    const roomCode = this.roomManager.getStoredRoomCode();
-    const deviceInfo = this.deviceDetector.getDeviceInfo();
+  async initializeWebRTC(roomCode, deviceId) {
+    try {
+      // Create WebRTC manager
+      this.webrtcManager = new WebRTCManager();
+      
+      // Set up connection state callbacks
+      this.webrtcManager.onConnectionStateChange((status, message) => {
+        this.handleConnectionStateChange(status, message);
+      });
+      
+      // Set up data reception callback
+      this.webrtcManager.onDataReceived((data, peerId) => {
+        this.handleDataReceived(data, peerId);
+      });
+      
+      // Initialize peer
+      const peerId = await this.webrtcManager.initializePeer(roomCode, deviceId);
+      
+      // Display peer ID in UI
+      const peerIdDisplay = document.getElementById('your-peer-id');
+      if (peerIdDisplay) {
+        peerIdDisplay.textContent = peerId;
+      }
+      
+      // Start peer discovery
+      this.startPeerDiscovery(roomCode);
+      
+      // Update connection count periodically
+      this.startConnectionMonitoring();
+      
+    } catch (error) {
+      console.error('Failed to initialize WebRTC:', error);
+      const errorMsg = `WebRTC initialization failed: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
+      this.showErrorWithCopy(errorMsg);
+      throw error;
+    }
+  }
+
+  startPeerDiscovery(roomCode) {
+    // Try to connect to other peers in the room
+    // Since we don't have a signaling server, we'll use a simple approach:
+    // Try connecting to peers that might be in the same room
+    // This is a simplified discovery - in production, you'd use a proper signaling mechanism
     
-    if (roomCode) {
-      // Leave the room (will get device ID from room manager in Phase 3)
-      // For now, just clear the stored code
-      this.roomManager.clearRoomCode();
+    // For now, we'll rely on PeerJS's built-in discovery
+    // Devices in the same room can try to connect if they know each other's peer IDs
+    // This is a limitation of the current setup - we'll improve it if needed
+    
+    // Update connection status
+    this.handleConnectionStateChange('connecting', 'Discovering peers...');
+    
+    // Note: Full peer discovery would require a signaling server
+    // For MVP, devices need to be aware of each other's peer IDs
+    // We can improve this later with a better discovery mechanism
+  }
+
+  handleConnectionStateChange(status, message) {
+    // Update UI based on connection status
+    if (this.deviceDetector.isMobile()) {
+      this.uiManager.updateMobileConnectionStatus(status, message);
+    } else {
+      this.uiManager.updateConnectionStatus(status, message);
+      this.uiManager.updateGameConnectionStatus(status, message);
+      
+      // Update connection count
+      this.updateConnectionCount();
+      
+      // If connected and we have peers, show game screen
+      if (status === 'connected' && this.webrtcManager && this.webrtcManager.getConnectionCount() > 0) {
+        // Transition to game screen if we're in waiting room
+        const waitingRoom = document.getElementById('waiting-room-screen');
+        if (waitingRoom && !waitingRoom.classList.contains('hidden')) {
+          this.uiManager.showDesktopGameScreen(this.currentRoomCode);
+          // Initialize visualization
+          this.initializeVisualization();
+        }
+      }
+    }
+  }
+
+  startConnectionMonitoring() {
+    // Update connection count every second
+    if (this.connectionMonitorInterval) {
+      clearInterval(this.connectionMonitorInterval);
     }
     
-    // Close WebRTC connections (Phase 3)
-    // Stop gyroscope (Phase 4)
-    // Clean up visualization (Phase 5)
+    this.connectionMonitorInterval = setInterval(() => {
+      this.updateConnectionCount();
+    }, 1000);
+  }
+
+  updateConnectionCount() {
+    if (this.webrtcManager) {
+      const count = this.webrtcManager.getConnectionCount();
+      const connectedCountEl = document.getElementById('connected-count');
+      if (connectedCountEl) {
+        connectedCountEl.textContent = count;
+      }
+    }
+  }
+
+  async initializeGyroscope(deviceId) {
+    try {
+      this.gyroscopeHandler = new GyroscopeHandler();
+      
+      // Try to auto-request permission
+      const granted = await this.gyroscopeHandler.requestPermission();
+      
+      if (granted) {
+        // Permission granted, start listening
+        this.startGyroscope(deviceId);
+        this.uiManager.showPermissionGranted();
+      } else {
+        // Permission denied, show manual request button
+        const permissionRequest = document.getElementById('permission-request');
+        if (permissionRequest) {
+          permissionRequest.classList.remove('hidden');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to initialize gyroscope:', error);
+      const errorMsg = `Failed to initialize gyroscope: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
+      this.showErrorWithCopy(errorMsg);
+    }
+  }
+
+  async requestGyroscopePermission() {
+    if (!this.gyroscopeHandler) {
+      this.gyroscopeHandler = new GyroscopeHandler();
+    }
+
+    try {
+      const granted = await this.gyroscopeHandler.requestPermission();
+      
+      if (granted) {
+        this.uiManager.showPermissionGranted();
+        this.startGyroscope(this.currentDeviceId);
+      } else {
+        const errorMsg = 'Gyroscope permission denied. Please enable device orientation in your browser settings.';
+        this.showErrorWithCopy(errorMsg);
+      }
+    } catch (error) {
+      const errorMsg = `Failed to request permission: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
+      this.showErrorWithCopy(errorMsg);
+    }
+  }
+
+  startGyroscope(deviceId) {
+    if (!this.gyroscopeHandler) {
+      console.error('Gyroscope handler not initialized');
+      return;
+    }
+
+    if (!this.webrtcManager) {
+      console.error('WebRTC manager not initialized');
+      return;
+    }
+
+    try {
+      // Start listening to gyroscope data
+      this.gyroscopeHandler.startListening((data) => {
+        // Send data via WebRTC
+        if (this.webrtcManager && this.webrtcManager.isConnected()) {
+          this.webrtcManager.sendData(data);
+        }
+      }, deviceId);
+
+      this.uiManager.updateMobileConnectionStatus('connected', 'Sending gyroscope data...');
+    } catch (error) {
+      console.error('Failed to start gyroscope:', error);
+      const errorMsg = `Failed to start gyroscope: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
+      this.showErrorWithCopy(errorMsg);
+    }
+  }
+
+  stopGyroscope() {
+    if (this.gyroscopeHandler) {
+      this.gyroscopeHandler.stopListening();
+      this.uiManager.updateMobileConnectionStatus('disconnected', 'Stopped sending data');
+    }
+  }
+
+  handleDataReceived(data, peerId) {
+    // Handle received data
+    console.log('Data received from', peerId, ':', data);
+    
+    // Handle gyroscope data for visualization
+    if (data.type === 'gyro_data') {
+      // Update visualization with gyroscope data
+      if (this.visualization) {
+        this.visualization.updateRotation(data.alpha, data.beta, data.gamma);
+      }
+    }
+  }
+
+  async connectToKnownPeer(peerId) {
+    if (!this.webrtcManager) {
+      console.error('WebRTC manager not initialized');
+      return;
+    }
+
+    try {
+      await this.webrtcManager.connectToPeer(peerId);
+      console.log('Connected to peer:', peerId);
+    } catch (error) {
+      console.error('Failed to connect to peer:', error);
+      const errorMsg = `Failed to connect to peer ${peerId}: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
+      this.showErrorWithCopy(errorMsg);
+    }
+  }
+
+  initializeVisualization() {
+    const canvasContainer = document.getElementById('game-screen-desktop');
+    if (!canvasContainer) {
+      console.error('Canvas container not found');
+      return;
+    }
+
+    try {
+      // Create visualization instance
+      this.visualization = new Visualization();
+      
+      // Initialize scene
+      this.visualization.initScene(canvasContainer);
+      
+      console.log('Visualization initialized');
+    } catch (error) {
+      console.error('Failed to initialize visualization:', error);
+      const errorMsg = `Failed to initialize visualization: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
+      this.showErrorWithCopy(errorMsg);
+    }
+  }
+
+  exitRoom() {
+    // Get current room code if available
+    const roomCode = this.currentRoomCode || this.roomManager.getStoredRoomCode();
+    const deviceId = this.currentDeviceId;
+    
+    // Close WebRTC connections
+    if (this.webrtcManager) {
+      this.webrtcManager.closeConnection();
+      this.webrtcManager = null;
+    }
+    
+    // Stop peer discovery
+    if (this.peerDiscoveryInterval) {
+      clearInterval(this.peerDiscoveryInterval);
+      this.peerDiscoveryInterval = null;
+    }
+    
+    // Stop connection monitoring
+    if (this.connectionMonitorInterval) {
+      clearInterval(this.connectionMonitorInterval);
+      this.connectionMonitorInterval = null;
+    }
+    
+    // Leave the room
+    if (roomCode && deviceId) {
+      this.roomManager.leaveRoom(roomCode, deviceId);
+    }
+    
+    // Stop gyroscope
+    this.stopGyroscope();
+    this.gyroscopeHandler = null;
+    
+    // Clear stored data
+    this.roomManager.clearRoomCode();
+    this.currentRoomCode = null;
+    this.currentDeviceId = null;
+    
+    // Clean up visualization
+    if (this.visualization) {
+      this.visualization.dispose();
+      this.visualization = null;
+    }
     
     this.uiManager.showLandingScreen();
   }
