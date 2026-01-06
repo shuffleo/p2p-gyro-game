@@ -40,8 +40,31 @@
           <div id="qr-scanner-container" class="hidden">
             <video id="qr-video" class="w-full rounded-lg" autoplay playsinline></video>
             <canvas id="qr-canvas" class="hidden"></canvas>
+            <div id="qr-scan-result" class="hidden mt-4 space-y-2">
+              <input
+                type="text"
+                id="qr-scanned-peer-id"
+                readonly
+                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg font-mono text-sm"
+                placeholder="Scanned Peer ID will appear here"
+              />
+              <div class="flex gap-2">
+                <button
+                  id="join-scanned-peer-btn"
+                  class="flex-1 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Join
+                </button>
+                <button
+                  id="cancel-scan-btn"
+                  class="flex-1 bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
             <button
-              id="cancel-scan-btn"
+              id="cancel-scan-btn-initial"
               class="w-full mt-2 bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
             >
               Cancel
