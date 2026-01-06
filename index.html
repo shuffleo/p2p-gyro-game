@@ -210,7 +210,16 @@
             </div>
             <div>
               <p class="text-xs text-gray-400 mb-1">Your Peer ID:</p>
-              <p class="text-sm font-mono break-all" id="mobile-peer-id">-</p>
+              <div class="flex gap-2 items-center">
+                <p class="text-sm font-mono break-all flex-1" id="mobile-peer-id">-</p>
+                <button
+                  id="copy-mobile-peer-id-btn"
+                  class="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 rounded text-xs font-medium transition-colors"
+                  title="Copy Peer ID"
+                >
+                  Copy
+                </button>
+              </div>
             </div>
           </div>
           

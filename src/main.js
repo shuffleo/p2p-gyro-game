@@ -36,7 +36,7 @@ class App {
       await this.start();
     });
 
-    // Copy Peer ID button
+    // Copy Peer ID button (desktop)
     const copyPeerIdBtn = document.getElementById('copy-peer-id-btn');
     copyPeerIdBtn?.addEventListener('click', () => {
       const peerId = document.getElementById('peer-id-display')?.value;
@@ -46,6 +46,21 @@ class App {
           copyPeerIdBtn.textContent = 'Copied!';
           setTimeout(() => {
             copyPeerIdBtn.textContent = originalText;
+          }, 2000);
+        });
+      }
+    });
+
+    // Copy mobile Peer ID button
+    const copyMobilePeerIdBtn = document.getElementById('copy-mobile-peer-id-btn');
+    copyMobilePeerIdBtn?.addEventListener('click', () => {
+      const peerId = document.getElementById('mobile-peer-id')?.textContent;
+      if (peerId && peerId !== '-') {
+        navigator.clipboard.writeText(peerId).then(() => {
+          const originalText = copyMobilePeerIdBtn.textContent;
+          copyMobilePeerIdBtn.textContent = 'Copied!';
+          setTimeout(() => {
+            copyMobilePeerIdBtn.textContent = originalText;
           }, 2000);
         });
       }
@@ -106,15 +121,28 @@ class App {
       await this.startQRScanning();
     });
     
+    // Cancel scan button (initial)
+    const cancelScanBtnInitial = document.getElementById('cancel-scan-btn-initial');
+    cancelScanBtnInitial?.addEventListener('click', () => {
+      this.stopQRScanning();
+      this.resetQRScanner();
+    });
+
+    // Cancel scan button (after scan)
     cancelScanBtn?.addEventListener('click', () => {
       this.stopQRScanning();
-      // Clear any success messages
-      const qrScannerContainer = document.getElementById('qr-scanner-container');
-      if (qrScannerContainer) {
-        const successMsg = qrScannerContainer.querySelector('.qr-scan-success');
-        if (successMsg) {
-          successMsg.remove();
-        }
+      this.resetQRScanner();
+    });
+
+    // Join scanned peer button
+    const joinScannedPeerBtn = document.getElementById('join-scanned-peer-btn');
+    joinScannedPeerBtn?.addEventListener('click', () => {
+      const scannedPeerId = document.getElementById('qr-scanned-peer-id')?.value.trim();
+      if (scannedPeerId) {
+        this.connectToKnownPeer(scannedPeerId);
+        // Close scanner after connecting
+        this.stopQRScanning();
+        this.resetQRScanner();
       }
     });
 
@@ -563,39 +591,29 @@ class App {
         
         console.log('QR Code scanned - Peer ID:', peerId);
         
-        // Set the Peer ID in the input field
-        const input = document.getElementById('peer-id-input');
-        if (input) {
-          input.value = peerId;
-          // Trigger input event to ensure UI updates
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          // Focus the input to show the code was entered
-          input.focus();
-        }
+        // Show the scanned result UI
+        const qrScanResult = document.getElementById('qr-scan-result');
+        const qrScannedPeerIdInput = document.getElementById('qr-scanned-peer-id');
+        const cancelScanBtnInitial = document.getElementById('cancel-scan-btn-initial');
         
-        // Show success message
-        const qrScannerContainer = document.getElementById('qr-scanner-container');
-        if (qrScannerContainer) {
-          // Add a success indicator
-          let successMsg = qrScannerContainer.querySelector('.qr-scan-success');
-          if (!successMsg) {
-            successMsg = document.createElement('div');
-            successMsg.className = 'qr-scan-success bg-green-600 text-white px-4 py-2 rounded-lg mt-2 text-center';
-            qrScannerContainer.appendChild(successMsg);
+        if (qrScanResult && qrScannedPeerIdInput) {
+          // Hide initial cancel button
+          if (cancelScanBtnInitial) {
+            cancelScanBtnInitial.classList.add('hidden');
           }
-          successMsg.textContent = `Peer ID scanned! Click Connect to connect.`;
-          successMsg.classList.remove('hidden');
           
-          // Auto-hide success message after 3 seconds
-          setTimeout(() => {
-            if (successMsg) {
-              successMsg.classList.add('hidden');
-            }
-          }, 3000);
+          // Set the scanned Peer ID in the result input
+          qrScannedPeerIdInput.value = peerId;
+          
+          // Show the result UI with Join button
+          qrScanResult.classList.remove('hidden');
+          
+          // Also set it in the main peer ID input field (for desktop waiting room)
+          const mainPeerIdInput = document.getElementById('peer-id-input');
+          if (mainPeerIdInput) {
+            mainPeerIdInput.value = peerId;
+          }
         }
-        
-        // Don't auto-connect - let user click Connect button
-        // This gives them a chance to verify the Peer ID
       });
     } catch (error) {
       console.error('Failed to start QR scanner:', error);
