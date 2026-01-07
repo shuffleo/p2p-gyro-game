@@ -170,9 +170,10 @@ class App {
       await this.connectToPeer();
     });
     
-    // Allow Enter key to connect
-    peerIdInput?.addEventListener('keypress', async (e) => {
-      if (e.key === 'Enter') {
+    // Allow Ctrl+Enter or Cmd+Enter to connect (since it's now a textarea)
+    peerIdInput?.addEventListener('keydown', async (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
         await this.connectToPeer();
       }
     });
@@ -459,6 +460,7 @@ class App {
     console.log('peerIdDisplay element:', peerIdDisplay);
     
     if (peerIdDisplay) {
+      // For textarea, use value; for input, also use value
       peerIdDisplay.value = this.peerIdKeyphrase || '';
       console.log('Set peerIdDisplay.value to:', peerIdDisplay.value);
     } else {
