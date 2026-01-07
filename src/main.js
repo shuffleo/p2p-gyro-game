@@ -477,16 +477,24 @@ class App {
   }
 
   sendData(data) {
-    if (this.webrtcManager && this.isConnected) {
-      try {
-        this.webrtcManager.sendData(data);
-      } catch (error) {
-        console.error('❌ Failed to send data:', error);
-      }
-    } else {
-      console.warn('⚠️ Cannot send data - WebRTC not ready or not connected');
-      console.log('WebRTC Manager:', this.webrtcManager ? 'exists' : 'null');
-      console.log('Is Connected:', this.isConnected);
+    if (!this.webrtcManager) {
+      console.warn('⚠️ Cannot send data: WebRTC manager not initialized', data.type);
+      return;
+    }
+    
+    if (!this.isConnected) {
+      console.warn('⚠️ Cannot send data: Not connected yet', {
+        isConnected: this.isConnected,
+        dataType: data.type
+      });
+      return;
+    }
+    
+    try {
+      console.log('📤 Sending data via WebRTC:', data.type);
+      this.webrtcManager.sendData(data);
+    } catch (error) {
+      console.error('❌ Failed to send data:', error, data);
     }
   }
 
