@@ -25,6 +25,7 @@ export class LightsaberVisualization {
     
     // Smoothing factors
     this.rotationSmoothing = 0.15;
+    this.baseRotationSmoothing = 0.15; // Store base value for motion adjustments
     this.lengthSmoothing = 0.1;
     
     // Blade color (can be customized)
