@@ -362,6 +362,16 @@ class App {
   async initializeMobileSensors() {
     try {
       console.log('📱 Initializing mobile sensors...');
+      console.log('🔒 Secure context:', window.isSecureContext);
+      console.log('🌐 Protocol:', window.location.protocol);
+      console.log('📱 User Agent:', navigator.userAgent);
+      
+      // Check secure context first
+      if (!window.isSecureContext && window.location.protocol !== 'http:' && window.location.hostname !== 'localhost') {
+        console.error('❌ Not in secure context! Device sensors require HTTPS.');
+        alert('⚠️ Device sensors require HTTPS. Please access this page via HTTPS (not HTTP).');
+        return;
+      }
       
       // Initialize gyroscope
       console.log('🔄 Requesting gyroscope permission...');
