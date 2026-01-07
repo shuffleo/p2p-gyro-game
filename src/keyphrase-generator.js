@@ -264,8 +264,8 @@ const WORD_LIST = [
 ];
 
 /**
- * Generate a memorable keyphrase (6 words + 3 random numbers)
- * @returns {string} Format: "word1 word2 word3 word4 word5 word6 123"
+ * Generate a memorable keyphrase (6 words + 5 random numbers)
+ * @returns {string} Format: "word1-word2-word3-word4-word5-word6-12345"
  */
 export function generateKeyphrase() {
   try {
@@ -276,19 +276,19 @@ export function generateKeyphrase() {
       words.push(WORD_LIST[randomIndex]);
     }
     
-    // Generate 3 random digits
-    const numbers = Math.floor(100 + Math.random() * 900).toString(); // 100-999
+    // Generate 5 random digits
+    const numbers = Math.floor(10000 + Math.random() * 90000).toString(); // 10000-99999
     
-    // Combine: "word1 word2 word3 word4 word5 word6 123"
-    const keyphrase = `${words.join(' ')} ${numbers}`;
+    // Combine with hyphens: "word1-word2-word3-word4-word5-word6-12345"
+    const keyphrase = `${words.join('-')}-${numbers}`;
     console.log('Generated keyphrase:', keyphrase);
     return keyphrase;
   } catch (error) {
     console.error('Error generating keyphrase:', error);
     // Fallback: generate a simple keyphrase
     const fallbackWords = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot'];
-    const numbers = Math.floor(100 + Math.random() * 900).toString();
-    return `${fallbackWords.join(' ')} ${numbers}`;
+    const numbers = Math.floor(10000 + Math.random() * 90000).toString();
+    return `${fallbackWords.join('-')}-${numbers}`;
   }
 }
 
@@ -302,17 +302,17 @@ export function validateKeyphrase(keyphrase) {
     return false;
   }
   
-  // Split by spaces
-  const parts = keyphrase.trim().split(/\s+/);
+  // Split by hyphens
+  const parts = keyphrase.trim().split('-');
   
   // Should have 6 words + 1 number part (7 parts total)
   if (parts.length !== 7) {
     return false;
   }
   
-  // Last part should be 3 digits
+  // Last part should be 5 digits
   const numberPart = parts[parts.length - 1];
-  if (!/^\d{3}$/.test(numberPart)) {
+  if (!/^\d{5}$/.test(numberPart)) {
     return false;
   }
   
@@ -329,7 +329,7 @@ export function validateKeyphrase(keyphrase) {
 }
 
 /**
- * Normalize keyphrase (lowercase words, ensure proper spacing)
+ * Normalize keyphrase (lowercase words, ensure proper hyphens)
  * @param {string} keyphrase - The keyphrase to normalize
  * @returns {string} Normalized keyphrase
  */
@@ -338,16 +338,22 @@ export function normalizeKeyphrase(keyphrase) {
     return '';
   }
   
-  // Trim and split
-  const parts = keyphrase.trim().split(/\s+/);
+  // Trim and normalize - handle both spaces and hyphens
+  let normalized = keyphrase.trim();
+  
+  // Replace spaces with hyphens
+  normalized = normalized.replace(/\s+/g, '-');
+  
+  // Split by hyphens
+  const parts = normalized.split('-');
   
   if (parts.length !== 7) {
-    return keyphrase.trim(); // Return as-is if invalid format
+    return normalized; // Return as-is if invalid format
   }
   
   // Lowercase words, keep numbers as-is
   const words = parts.slice(0, 6).map(w => w.toLowerCase());
   const numbers = parts[6];
   
-  return `${words.join(' ')} ${numbers}`;
+  return `${words.join('-')}-${numbers}`;
 }

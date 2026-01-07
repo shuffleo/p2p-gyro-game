@@ -27,11 +27,10 @@ export class WebRTCManager {
 
   async initializePeer(peerIdKeyphrase) {
     // Use the keyphrase directly as peer ID
-    // PeerJS accepts alphanumeric and some special chars, but keyphrases use spaces
-    // Convert spaces to hyphens for PeerJS compatibility
+    // Keyphrases already use hyphens, so we can use them directly
     // Also store the original keyphrase for display
     this.peerIdKeyphrase = peerIdKeyphrase;
-    const peerId = peerIdKeyphrase.replace(/\s+/g, '-').toLowerCase();
+    const peerId = peerIdKeyphrase.toLowerCase();
     
     console.log('Initializing peer with keyphrase:', peerIdKeyphrase);
     console.log('Converted peer ID:', peerId);
@@ -105,8 +104,8 @@ export class WebRTCManager {
   }
 
   async connectToPeer(peerIdKeyphrase) {
-    // Normalize keyphrase: convert spaces to hyphens for PeerJS compatibility
-    const peerId = peerIdKeyphrase.replace(/\s+/g, '-').toLowerCase();
+    // Keyphrases already use hyphens, just lowercase
+    const peerId = peerIdKeyphrase.toLowerCase();
     
     console.log('Connecting to peer with keyphrase:', peerIdKeyphrase);
     console.log('Converted peer ID:', peerId);
