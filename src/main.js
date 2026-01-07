@@ -21,7 +21,6 @@ class App {
     this.peerIdKeyphrase = null;
     this.currentDeviceId = null;
     this.isConnected = false;
-    this.recentPeers = this.loadRecentPeers();
     
     this.init();
   }
@@ -86,17 +85,63 @@ class App {
         this.handleConnectionQualityChange(peerId, quality);
       });
       
-      // Initialize peer with keyphrase
+      // Initialize peer with keyphrase (for display)
       console.log('Initializing WebRTC with keyphrase:', this.peerIdKeyphrase);
+      
+      // Update UI to show initializing state
+      this.updateReadyState();
+      
       const peerId = await this.webrtcManager.initializePeer(this.peerIdKeyphrase);
       
       console.log('WebRTC initialized with peer ID:', peerId);
+      console.log('Peer is ready:', this.webrtcManager.isPeerReady());
       
-      // Update display with actual peer ID (might be different from keyphrase)
-      // But we'll keep showing the keyphrase for user reference
+      // Update UI to show ready state
+      this.updateReadyState();
     } catch (error) {
       console.error('Failed to initialize WebRTC:', error);
       throw error;
+    }
+  }
+
+  updateReadyState() {
+    const statusText = document.getElementById('status-text');
+    const statusIndicator = document.getElementById('status-indicator');
+    const statusDiv = document.getElementById('connection-status');
+    const readyHint = document.getElementById('ready-hint');
+    const connectBtn = document.getElementById('connect-peer-btn');
+    
+    if (this.webrtcManager && this.webrtcManager.isPeerReady()) {
+      if (statusDiv) {
+        statusDiv.classList.remove('hidden');
+      }
+      if (statusText) {
+        statusText.textContent = 'Ready to connect';
+      }
+      if (statusIndicator) {
+        statusIndicator.className = 'w-2 h-2 rounded-full bg-green-500';
+      }
+      if (readyHint) {
+        readyHint.textContent = 'You can now connect to another device';
+        readyHint.className = 'text-xs text-green-400 mt-1';
+      }
+      if (connectBtn) {
+        connectBtn.disabled = false;
+      }
+    } else {
+      if (statusText) {
+        statusText.textContent = 'Initializing...';
+      }
+      if (statusIndicator) {
+        statusIndicator.className = 'w-2 h-2 rounded-full bg-yellow-500 animate-pulse';
+      }
+      if (readyHint) {
+        readyHint.textContent = 'Wait for "Ready to connect" before attempting connection';
+        readyHint.className = 'text-xs text-gray-400 mt-1';
+      }
+      if (connectBtn) {
+        connectBtn.disabled = true;
+      }
     }
   }
 
@@ -221,27 +266,36 @@ class App {
     }
     
     try {
-      // Ensure WebRTC is initialized
-      if (!this.webrtcManager || !this.webrtcManager.peer || !this.webrtcManager.peer.open) {
+      // Ensure WebRTC is initialized and ready
+      if (!this.webrtcManager || !this.webrtcManager.isPeerReady()) {
         console.log('WebRTC not ready, waiting for initialization...');
-        // Wait a bit for peer to be ready
+        if (statusText) {
+          statusText.textContent = 'Initializing...';
+        }
+        
+        // Wait for peer to be ready
         let waitCount = 0;
-        while ((!this.webrtcManager || !this.webrtcManager.peer || !this.webrtcManager.peer.open) && waitCount < 20) {
+        while ((!this.webrtcManager || !this.webrtcManager.isPeerReady()) && waitCount < 30) {
           await new Promise(resolve => setTimeout(resolve, 500));
           waitCount++;
         }
         
-        if (!this.webrtcManager || !this.webrtcManager.peer || !this.webrtcManager.peer.open) {
-          throw new Error('WebRTC peer not ready. Please wait a moment and try again.');
+        if (!this.webrtcManager || !this.webrtcManager.isPeerReady()) {
+          throw new Error('WebRTC peer not ready. Please refresh the page and try again.');
         }
       }
       
-      // Connect to peer
-      console.log('Attempting connection...');
-      await this.webrtcManager.connectToPeer(normalizedKeyphrase);
+      // Update status
+      if (statusText) {
+        statusText.textContent = 'Connecting...';
+      }
+      if (statusIndicator) {
+        statusIndicator.className = 'w-2 h-2 rounded-full bg-yellow-500 animate-pulse';
+      }
       
-      // Save to recent peers
-      this.addToRecentPeers(normalizedKeyphrase);
+      // Connect to peer with retries
+      console.log('Attempting connection...');
+      await this.webrtcManager.connectToPeer(normalizedKeyphrase, 3);
       
       // Wait a moment for connection to establish
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -536,83 +590,6 @@ class App {
     // Reinitialize room
     this.initializeRoom();
   }
-
-  loadRecentPeers() {
-    try {
-      const stored = localStorage.getItem('recentPeers');
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (error) {
-      console.error('Failed to load recent peers:', error);
-    }
-    return [];
-  }
-
-  saveRecentPeers() {
-    try {
-      localStorage.setItem('recentPeers', JSON.stringify(this.recentPeers));
-    } catch (error) {
-      console.error('Failed to save recent peers:', error);
-    }
-  }
-
-  addToRecentPeers(peerIdKeyphrase) {
-    // Remove if already exists
-    this.recentPeers = this.recentPeers.filter(p => p !== peerIdKeyphrase);
-    
-    // Add to beginning
-    this.recentPeers.unshift(peerIdKeyphrase);
-    
-    // Keep only last 10
-    if (this.recentPeers.length > 10) {
-      this.recentPeers = this.recentPeers.slice(0, 10);
-    }
-    
-    this.saveRecentPeers();
-    this.updateRecentPeersList();
-  }
-
-  updateRecentPeersList() {
-    const recentPeersList = document.getElementById('recent-peers-list');
-    if (!recentPeersList) return;
-
-    if (this.recentPeers.length === 0) {
-      recentPeersList.innerHTML = '<p class="text-xs text-gray-400 text-center py-2">No recent peers</p>';
-      return;
-    }
-
-    recentPeersList.innerHTML = this.recentPeers.map(peerId => `
-      <div class="flex items-center gap-2 p-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors cursor-pointer group" data-peer-id="${peerId}">
-        <div class="flex-1 min-w-0">
-          <p class="text-xs font-mono text-gray-300 truncate" title="${peerId}">${peerId}</p>
-        </div>
-        <button
-          class="opacity-0 group-hover:opacity-100 px-3 py-1 text-xs bg-primary-600 hover:bg-primary-700 rounded transition-all"
-          data-peer-id="${peerId}"
-          title="Connect to this peer"
-        >
-          Connect
-        </button>
-      </div>
-    `).join('');
-
-    // Add click handlers
-    recentPeersList.querySelectorAll('[data-peer-id]').forEach(element => {
-      element.addEventListener('click', async (e) => {
-        const peerId = element.getAttribute('data-peer-id');
-        if (peerId) {
-          // Set the peer ID in the input field
-          const peerIdInput = document.getElementById('peer-id-input');
-          if (peerIdInput) {
-            peerIdInput.value = peerId;
-          }
-          // Trigger connection
-          await this.connectToPeer();
-        }
-      });
-    });
-  }
 }
 
 // Initialize app when DOM is ready
@@ -623,3 +600,4 @@ if (document.readyState === 'loading') {
 } else {
   new App();
 }
+

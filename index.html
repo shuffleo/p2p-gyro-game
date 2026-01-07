@@ -65,6 +65,7 @@
               <button
                 id="connect-peer-btn"
                 class="w-full px-6 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled
               >
                 Connect
               </button>
@@ -72,18 +73,12 @@
             <p class="text-xs text-gray-400 mt-1">Enter another device's Peer ID to pair</p>
           </div>
           
-          <div class="border-t border-gray-700 pt-4">
-            <label class="block text-sm font-medium mb-2">Recent Peers</label>
-            <div id="recent-peers-list" class="space-y-2 max-h-48 overflow-y-auto">
-              <p class="text-xs text-gray-400 text-center py-2">No recent peers</p>
-            </div>
-          </div>
-          
-          <div id="connection-status" class="hidden">
+          <div id="connection-status" class="mt-2">
             <div class="flex items-center gap-2 text-sm">
-              <span class="w-2 h-2 rounded-full bg-gray-500 animate-pulse" id="status-indicator"></span>
-              <span id="status-text">Connecting...</span>
+              <span class="w-2 h-2 rounded-full bg-gray-500" id="status-indicator"></span>
+              <span id="status-text">Initializing...</span>
             </div>
+            <p class="text-xs text-gray-400 mt-1" id="ready-hint">Wait for "Ready to connect" before attempting connection</p>
           </div>
         </div>
       </div>
