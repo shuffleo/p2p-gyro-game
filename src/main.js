@@ -723,19 +723,10 @@ class App {
       }
     }
     
-    // Show homepage
-    const homepage = document.getElementById('homepage-screen');
-    const gameScreen = document.getElementById('game-screen');
+    // Return to homepage
+    this.showHomepage();
     
-    if (homepage) {
-      homepage.classList.remove('hidden');
-    }
-    
-    if (gameScreen) {
-      gameScreen.classList.add('hidden');
-    }
-    
-    // Reinitialize room
+    // Reinitialize room (but keep visualization on desktop)
     this.initializeRoom();
   }
 }
