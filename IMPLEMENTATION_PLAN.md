@@ -1,30 +1,34 @@
-# P2P Gyroscope Game - Updated Implementation Plan
+# P2P Lightsaber Game - Implementation Plan
 
-## Implementation Review & Updates
+This document reflects the **actual implementation** of the P2P Lightsaber Game.
 
-This document reflects the **actual implementation** as completed, with details that differ from or expand upon the original plan.
+## Overview
+
+A peer-to-peer lightsaber game where mobile devices act as controllers, sending gyroscope, motion, and microphone data to desktop devices that visualize a 3D lightsaber using Three.js.
 
 ## Key Implementation Details
 
-### Peer Discovery Mechanism
-**Actual Implementation**: Manual peer ID entry
-- Each device generates a peer ID: `{roomCode}_{deviceIdSuffix}`
-- Peer IDs are displayed in the waiting room UI
-- Users manually copy and paste peer IDs to connect
-- **Note**: This is a simplified approach. Full automatic discovery would require additional signaling infrastructure.
+### Peer ID System
+**Implementation**: Keyphrase-based peer IDs using niceware library
+- Format: 6 words + 3 random numbers (e.g., "word1 word2 word3 word4 word5 word6 123")
+- Auto-generated on page load
+- Easy to share verbally or via copy-paste
+- PeerJS compatibility: spaces converted to hyphens for WebRTC
 
-### WebRTC Connection Flow
-**Actual Implementation**:
-1. Device joins room → RoomManager validates and registers device
-2. WebRTCManager initializes PeerJS peer with room code + device ID
-3. Peer ID displayed in UI for manual sharing
-4. Devices connect by entering each other's peer IDs
-5. Data channels established automatically by PeerJS
-6. Gyroscope data flows: Mobile → WebRTC → Desktop → Visualization
+### Connection Flow
+**Implementation**:
+1. Page loads → Auto-generate peer ID keyphrase
+2. Display peer ID with copy button
+3. User enters other device's peer ID
+4. Click "Connect" → WebRTC establishes direct connection
+5. Once connected → Show game screen with visualization
+6. Mobile: Initialize sensors (gyroscope, motion, microphone)
+7. Desktop: Initialize lightsaber visualization
 
-### Data Protocol (Actual)
+### Data Protocol
+
 ```javascript
-// Gyroscope Data Message
+// Gyroscope Data
 {
   type: 'gyro_data',
   timestamp: number,
@@ -33,183 +37,225 @@ This document reflects the **actual implementation** as completed, with details 
   gamma: number,  // Y-axis rotation (-90 to 90)
   deviceId: string
 }
+
+// Motion Data
+{
+  type: 'motion_data',
+  timestamp: number,
+  acceleration: { x, y, z },
+  velocity: { x, y, z },
+  speed: number,
+  rotationRate: { alpha, beta, gamma },
+  deviceId: string
+}
+
+// Audio Data
+{
+  type: 'audio_data',
+  timestamp: number,
+  volume: number,  // 0-1 normalized
+  deviceId: string
+}
 ```
 
-### Component Architecture (Actual)
+### Component Architecture
 
 #### App (main.js)
 - **Responsibilities**: 
   - Orchestrates all components
   - Handles user interactions
   - Manages application lifecycle
-  - Coordinates WebRTC, gyroscope, and visualization
+  - Coordinates WebRTC, sensors, and visualization
 - **Key Methods**:
-  - `joinRoom(code)` - Validates and joins room, initializes WebRTC
-  - `initializeWebRTC()` - Sets up PeerJS connections
-  - `initializeGyroscope()` - Auto-requests permission, starts listening
-  - `initializeVisualization()` - Sets up Three.js scene
-  - `handleDataReceived()` - Routes gyroscope data to visualization
-  - `exitRoom()` - Cleanup all resources
-
-#### RoomManager (room-manager.js)
-- **Actual Implementation**:
-  - In-memory room storage (Map)
-  - localStorage persistence for room state
-  - Device tracking with timestamps
-  - Automatic room cleanup when empty
-- **Key Features**:
-  - Generates 8-24 character alphanumeric codes
-  - Validates room codes (case-insensitive)
-  - Enforces constraints: max 3 devices, max 1 mobile
-  - Persists to localStorage for cross-session recovery
+  - `initializeRoom()` - Auto-generates peer ID, initializes WebRTC
+  - `connectToPeer()` - Connects to another peer via keyphrase
+  - `initializeMobileSensors()` - Sets up gyroscope, motion, microphone
+  - `initializeVisualization()` - Sets up Three.js lightsaber scene
+  - `handleDataReceived()` - Routes data to visualization
+  - `disconnect()` - Cleanup all resources
 
 #### WebRTCManager (webrtc-manager.js)
-- **Actual Implementation**:
+- **Implementation**:
   - Uses PeerJS cloud signaling (0.peerjs.com)
   - STUN servers: Google public servers
-  - Peer ID format: `{roomCode}_{deviceIdSuffix}`
+  - Peer ID format: keyphrase with spaces → hyphens
   - Reliable data channels
   - Connection state tracking
 - **Key Features**:
-  - Automatic connection handling (incoming/outgoing)
+  - Direct peer-to-peer connections (no room-based discovery)
+  - Connection quality monitoring (RTT, quality levels)
   - Error recovery and connection cleanup
   - Data transmission with error handling
-  - Connection count monitoring
 
 #### GyroscopeHandler (gyroscope-handler.js)
-- **Actual Implementation**:
-  - Auto-request permission on mobile device join
-  - Fallback manual permission button
+- **Implementation**:
+  - Auto-request permission on mobile
   - Throttled data transmission (60fps = 16ms interval)
   - Data normalization (handles null values)
 - **Key Features**:
   - iOS 13+ permission handling
   - Chrome permission auto-grant
   - Event listener management
-  - Last data caching
 
-#### Visualization (visualization.js)
-- **Actual Implementation**:
-  - Three.js WebGL renderer
-  - BoxGeometry (2x3x0.5) representing mobile device
-  - Smooth rotation interpolation (lerp with 0.1 factor)
-  - Responsive canvas sizing
-  - Edge lines for visibility
+#### MotionHandler (motion-handler.js)
+- **Implementation**:
+  - DeviceMotionEvent API for acceleration/velocity
+  - Calculates speed from velocity magnitude
+  - Rotation rate detection
 - **Key Features**:
-  - Ambient + directional lighting
-  - Smooth animation loop (requestAnimationFrame)
-  - Automatic cleanup on dispose
+  - Motion permission handling
+  - Velocity integration from acceleration
+  - Speed calculation for dynamic responsiveness
+
+#### MicrophoneHandler (microphone-handler.js)
+- **Implementation**:
+  - MediaDevices API for microphone access
+  - AudioContext + AnalyserNode for volume detection
+  - Frequency analysis for volume calculation
+- **Key Features**:
+  - Microphone permission handling
+  - Real-time volume level (0-1 normalized)
+  - Throttled transmission (30fps = 33ms interval)
+
+#### LightsaberVisualization (lightsaber-visualization.js)
+- **Implementation**:
+  - Three.js WebGL renderer
+  - Lightsaber hilt (dark metallic cylinder with details)
+  - Lightsaber blade (multiple layers for glow effect):
+    - Inner core (bright, opaque)
+    - Outer glow 1 (semi-transparent)
+    - Outer glow 2 (more transparent)
+  - Smooth rotation interpolation
+  - Dynamic blade length based on microphone volume
+- **Key Features**:
+  - Ambient + point lighting
+  - Smooth animation loop
   - Coordinate system mapping: alpha→Y, beta→X, gamma→Z
+  - Blade length: base length + (volume × max extension)
+
+#### KeyphraseGenerator (keyphrase-generator.js)
+- **Implementation**:
+  - Uses niceware library for word generation
+  - Generates 12 random bytes → 6 words
+  - Adds 3 random digits (100-999)
+- **Key Features**:
+  - Memorable keyphrases (easier to share than random strings)
+  - Validation and normalization functions
+  - Format: "word1 word2 word3 word4 word5 word6 123"
 
 #### DeviceDetector (device-detector.js)
-- **Actual Implementation**:
+- **Implementation**:
   - Multi-factor mobile detection (UA + touch + screen size)
   - Persistent device ID in localStorage
   - Gyroscope capability detection
 - **Key Features**:
   - Fallback device ID generation
   - Screen dimension tracking
-  - User agent analysis
 
-#### UIManager (ui-manager.js)
-- **Actual Implementation**:
-  - Screen state management (landing, waiting, game)
-  - Connection status indicators (4 states: connecting, connected, disconnected, error)
-  - Device list rendering
-  - Permission UI toggling
-- **Key Features**:
-  - Status color coding (yellow, green, gray, red)
-  - Real-time device list updates
-  - Screen transition handling
+### UI Flow
 
-### Error Handling (Actual)
-- **Implementation**: 
-  - All errors use `showErrorWithCopy()` utility
-  - Automatically copies error details to clipboard
-  - Includes timestamp, browser info, and full error object
-  - Alert dialogs with copy functionality
-- **Error Types Handled**:
-  - Room validation errors
-  - WebRTC connection failures
-  - Permission denials
-  - Gyroscope initialization errors
-  - Visualization setup failures
+1. **Homepage Screen**: 
+   - Auto-generates peer ID on load
+   - Displays peer ID with copy button
+   - Input field for entering other peer ID
+   - "Connect" button
+   - Connection status indicator
+
+2. **Game Screen (Desktop)**: 
+   - Full-screen 3D canvas with lightsaber
+   - Status overlay with:
+     - Connection status
+     - RTT (Round Trip Time)
+     - Quality level (excellent/good/fair/poor)
+     - Connected peers count
+     - Peer ID display
+   - Disconnect button
+
+3. **Game Screen (Mobile)**: 
+   - Permission requests (gyroscope, motion, microphone)
+   - Connection status
+   - Peer ID display
+   - Disconnect button
+
+### Connection Quality Monitoring
+
+**Implementation**: RTT-based quality measurement
+- Sends quality ping every 2 seconds
+- Calculates RTT from ping to pong response
+- Quality levels:
+  - **Excellent**: RTT < 50ms 🟢
+  - **Good**: RTT < 100ms 🟢
+  - **Fair**: RTT < 200ms 🟡
+  - **Poor**: RTT >= 200ms 🔴
+
+### Performance Optimizations
+
+1. **Gyroscope Throttling**: 60fps limit (16ms interval)
+2. **Motion Throttling**: 60fps limit (16ms interval)
+3. **Audio Throttling**: 30fps limit (33ms interval)
+4. **Rotation Smoothing**: Lerp interpolation (0.15 factor)
+5. **Blade Length Smoothing**: Lerp interpolation (0.1 factor)
+6. **Canvas Optimization**: Pixel ratio capped at 2
+7. **Memory Management**: Proper cleanup on disconnect
+
+### Known Limitations
+
+1. **Direct Connections Only**: No automatic peer discovery (manual peer ID entry required)
+2. **Browser Support**: Chrome only (as specified)
+3. **PeerJS Free Tier**: May have connection limits
+4. **NAT Traversal**: Some networks may block P2P (STUN helps but not 100%)
+5. **iOS Permission**: Requires user gesture for permission requests
+6. **Microphone Access**: Requires HTTPS (or localhost for development)
+
+### Error Handling
+
+- All errors use `showErrorWithCopy()` utility
+- Automatically copies error details to clipboard
+- Includes timestamp, browser info, and full error object
+- Alert dialogs with copy functionality
 
 ### Connection Status States
-**Actual Implementation**:
-1. `connecting` - Yellow indicator, "Connecting to peers..."
-2. `connected` - Green indicator, "Connected" or "Sending gyroscope data..."
+
+1. `connecting` - Yellow indicator, "Connecting..."
+2. `connected` - Green indicator, "Connected"
 3. `disconnected` - Gray indicator, "Disconnected"
 4. `error` - Red indicator, error message
 
-### UI Flow (Actual)
-1. **Landing Screen**: Room code input, generate/join buttons
-2. **Waiting Room (Desktop)**: 
-   - Room code display with copy button
-   - Peer ID display
-   - Manual peer connection input
-   - Connection status
-   - Device list
-3. **Game Screen (Desktop)**: 
-   - Full-screen 3D canvas
-   - Status overlay with room info
-   - Device list sidebar
-4. **Mobile Game Screen**: 
-   - Permission request (auto or manual)
-   - Connection status
-   - Stop sending button
-   - Room code display
+## Technical Decisions
 
-### localStorage Structure
-```javascript
-{
-  'lastRoomCode': string,           // Last used room code
-  'deviceId': string,              // Persistent device ID
-  'activeRooms': [                 // Room state persistence
-    {
-      code: string,
-      devices: Array<Device>,
-      createdAt: number
-    }
-  ]
-}
-```
+### Why Keyphrases Instead of Random Strings?
+- **Shareability**: Easier to communicate verbally or via text
+- **Memorability**: Words are easier to remember than random alphanumeric strings
+- **User Experience**: More friendly and approachable
 
-### Performance Optimizations (Actual)
-1. **Gyroscope Throttling**: 60fps limit (16ms interval)
-2. **Rotation Smoothing**: Lerp interpolation (0.1 factor)
-3. **Connection Monitoring**: 1-second interval updates
-4. **Canvas Optimization**: Pixel ratio capped at 2
-5. **Memory Management**: Proper cleanup on exit
+### Why Direct P2P Instead of Room-Based?
+- **Simplicity**: No need for room management or discovery mechanisms
+- **Flexibility**: Works with static hosting (GitHub Pages)
+- **Direct Control**: Users explicitly choose who to connect to
 
-### Known Limitations (Actual)
-1. **Peer Discovery**: Manual peer ID entry required (no automatic discovery)
-2. **Room Persistence**: localStorage-based (per-device, not shared across devices)
-3. **Browser Support**: Chrome only (as specified)
-4. **PeerJS Free Tier**: May have connection limits
-5. **NAT Traversal**: Some networks may block P2P (STUN helps but not 100%)
-6. **iOS Permission**: Requires user gesture for permission request
+### Why Three Layers for Lightsaber Blade?
+- **Glow Effect**: Multiple semi-transparent layers create realistic glow
+- **Visual Appeal**: More visually impressive than single cylinder
+- **Performance**: Minimal performance impact with proper optimization
 
-### Testing Considerations
-- **Unit Tests**: Individual component testing
-- **Integration Tests**: Component interaction testing
-- **E2E Tests**: Full user flow testing
-- **Manual Tests**: Multi-device connection testing
-
-## Differences from Original Plan
-
-1. **Peer Discovery**: Original plan suggested automatic discovery, but implementation uses manual peer ID entry (simpler, works with static hosting)
-2. **Error Handling**: Enhanced with automatic clipboard copy functionality
-3. **Connection Monitoring**: Added periodic connection count updates
-4. **Visualization**: Added edge lines and improved lighting for better visibility
-5. **Device Detection**: More robust multi-factor detection than originally planned
+### Why Separate Motion Handler?
+- **Additional Data**: Motion provides speed/acceleration not available from gyroscope
+- **Dynamic Responsiveness**: Speed affects how quickly lightsaber responds
+- **Future Extensibility**: Can add more motion-based features
 
 ## Future Enhancements
 
-1. QR code generation for easy peer ID sharing
-2. Multiple visualization modes
-3. Sound effects
+1. Multiple lightsaber colors/styles
+2. Sound effects (swoosh, hum, clash)
+3. Multiple lightsabers (multiplayer)
 4. Enhanced connection quality metrics (packet loss, bandwidth)
-5. Adaptive reconnection strategies
-6. Quality history tracking for analytics
+5. Lightsaber trail effects
+6. Haptic feedback on mobile
+7. Gesture recognition (swing patterns)
 
+## Testing Considerations
+
+- **Unit Tests**: Individual component testing
+- **Integration Tests**: Component interaction testing
+- **Manual Tests**: Multi-device connection testing
+- **Performance Tests**: Frame rate, latency, memory usage
