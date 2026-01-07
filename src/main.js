@@ -37,11 +37,11 @@ class App {
       this.peerIdKeyphrase = generateKeyphrase();
       this.currentDeviceId = this.deviceDetector.getDeviceInfo().id;
       
+      // Display peer ID in UI immediately (before WebRTC init)
+      this.updatePeerIdDisplay();
+      
       // Initialize WebRTC
       await this.initializeWebRTC();
-      
-      // Display peer ID in UI
-      this.updatePeerIdDisplay();
       
       // Initialize visualization (for desktop, will show after connection)
       const deviceInfo = this.deviceDetector.getDeviceInfo();
@@ -107,6 +107,37 @@ class App {
         } catch (error) {
           console.error('Failed to copy peer ID:', error);
         }
+      }
+    });
+
+    // Regenerate Peer ID button
+    const regeneratePeerIdBtn = document.getElementById('regenerate-peer-id-btn');
+    regeneratePeerIdBtn?.addEventListener('click', async () => {
+      // Only allow regeneration if not connected
+      if (this.isConnected) {
+        if (!confirm('You are currently connected. Regenerating will disconnect you. Continue?')) {
+          return;
+        }
+        this.disconnect();
+      }
+      
+      // Generate new peer ID
+      this.peerIdKeyphrase = generateKeyphrase();
+      this.updatePeerIdDisplay();
+      
+      // Reinitialize WebRTC with new peer ID
+      try {
+        // Close existing WebRTC connection if any
+        if (this.webrtcManager) {
+          this.webrtcManager.closeConnection();
+          this.webrtcManager = null;
+        }
+        
+        // Initialize with new peer ID
+        await this.initializeWebRTC();
+      } catch (error) {
+        console.error('Failed to reinitialize WebRTC:', error);
+        showErrorWithCopy(`Failed to regenerate peer ID: ${error.message}`);
       }
     });
 
@@ -386,12 +417,12 @@ class App {
     const peerIdDisplay = document.getElementById('your-peer-id-display');
     const gamePeerId = document.getElementById('game-peer-id');
     
-    if (peerIdDisplay && this.peerIdKeyphrase) {
-      peerIdDisplay.value = this.peerIdKeyphrase;
+    if (peerIdDisplay) {
+      peerIdDisplay.value = this.peerIdKeyphrase || '';
     }
     
-    if (gamePeerId && this.peerIdKeyphrase) {
-      gamePeerId.textContent = this.peerIdKeyphrase;
+    if (gamePeerId) {
+      gamePeerId.textContent = this.peerIdKeyphrase || '-';
     }
   }
 
