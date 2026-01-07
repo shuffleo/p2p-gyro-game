@@ -9,9 +9,42 @@
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
   <div id="app" class="min-h-screen flex flex-col">
+    <!-- Game Screen (Shows from start on desktop, after connection on mobile) -->
+    <div id="game-screen" class="hidden flex-1 flex flex-col">
+      <div class="flex-1 relative">
+        <canvas id="three-canvas" class="w-full h-full"></canvas>
+        
+        <!-- Connection Status Overlay -->
+        <div class="absolute top-4 left-4 bg-gray-800 bg-opacity-90 rounded-lg p-4 space-y-2 min-w-[250px]">
+          <div class="flex items-center gap-2 text-sm">
+            <span class="w-2 h-2 rounded-full bg-gray-500" id="game-status-indicator"></span>
+            <span id="game-status-text">Connected</span>
+          </div>
+          
+          <div id="connection-metrics" class="text-xs text-gray-400 space-y-1">
+            <div>RTT: <span id="rtt-display">-</span>ms</div>
+            <div>Quality: <span id="quality-display">-</span></div>
+            <div>Connected Peers: <span id="connected-count">0</span></div>
+          </div>
+          
+          <div class="border-t border-gray-700 pt-2 mt-2">
+            <p class="text-xs text-gray-400 mb-1">Your Peer ID:</p>
+            <p class="text-xs font-mono break-all" id="game-peer-id"></p>
+          </div>
+          
+          <button
+            id="exit-game-btn"
+            class="w-full mt-2 bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-sm font-medium transition-colors"
+          >
+            Disconnect
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Homepage Screen (Auto-creates room) -->
     <div id="homepage-screen" class="flex-1 flex items-center justify-center p-4">
-      <div class="w-full max-w-md space-y-6">
+      <div class="w-full max-w-md space-y-6 relative z-10">
         <div class="text-center">
           <h1 class="text-4xl font-bold mb-2">P2P Lightsaber Game</h1>
           <p class="text-gray-400">Swing your phone to control the lightsaber</p>
@@ -87,39 +120,6 @@
             </div>
             <p class="text-xs text-gray-400 mt-1" id="ready-hint">Wait for "Ready to connect" before attempting connection</p>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Game Screen (Shows after connection) -->
-    <div id="game-screen" class="hidden flex-1 flex flex-col">
-      <div class="flex-1 relative">
-        <canvas id="three-canvas" class="w-full h-full"></canvas>
-        
-        <!-- Connection Status Overlay -->
-        <div class="absolute top-4 left-4 bg-gray-800 bg-opacity-90 rounded-lg p-4 space-y-2 min-w-[250px]">
-          <div class="flex items-center gap-2 text-sm">
-            <span class="w-2 h-2 rounded-full bg-gray-500" id="game-status-indicator"></span>
-            <span id="game-status-text">Connected</span>
-          </div>
-          
-          <div id="connection-metrics" class="text-xs text-gray-400 space-y-1">
-            <div>RTT: <span id="rtt-display">-</span>ms</div>
-            <div>Quality: <span id="quality-display">-</span></div>
-            <div>Connected Peers: <span id="connected-count">0</span></div>
-          </div>
-          
-          <div class="border-t border-gray-700 pt-2 mt-2">
-            <p class="text-xs text-gray-400 mb-1">Your Peer ID:</p>
-            <p class="text-xs font-mono break-all" id="game-peer-id"></p>
-          </div>
-          
-          <button
-            id="exit-game-btn"
-            class="w-full mt-2 bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-sm font-medium transition-colors"
-          >
-            Disconnect
-          </button>
         </div>
       </div>
     </div>

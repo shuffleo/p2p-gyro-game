@@ -51,14 +51,15 @@ class App {
       // Initialize WebRTC
       await this.initializeWebRTC();
       
-      // Initialize visualization (for desktop, will show after connection)
+      // Initialize visualization for desktop on page load
       const deviceInfo = this.deviceDetector.getDeviceInfo();
       if (!deviceInfo.isMobile) {
-        // Desktop: initialize visualization container
-        const container = document.getElementById('game-screen');
-        if (container) {
-          // Visualization will be initialized after connection
-        }
+        // Desktop: show game screen and initialize visualization immediately
+        // This shows the lightsaber from the start (static until data arrives)
+        this.showGameScreenForDesktop();
+        // Wait a bit for DOM to settle
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await this.initializeVisualization();
       }
     } catch (error) {
       console.error('Failed to initialize room:', error);
@@ -309,18 +310,19 @@ class App {
       // Initialize sensors and visualization based on device type
       const deviceInfo = this.deviceDetector.getDeviceInfo();
       
-      // Show game screen first (so visualization has a container)
-      this.showGameScreen();
-      
-      // Wait a moment for DOM to update
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      // For mobile, show game screen and initialize sensors
+      // For desktop, visualization is already initialized on page load
       if (deviceInfo.isMobile) {
-        // Mobile: initialize gyroscope, motion, and microphone
+        // Mobile: show game screen and initialize gyroscope, motion, and microphone
+        this.showGameScreen();
+        
+        // Wait a moment for DOM to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         await this.initializeMobileSensors();
       } else {
-        // Desktop: initialize visualization
-        await this.initializeVisualization();
+        // Desktop: visualization already initialized, just hide homepage
+        this.showGameScreen();
       }
       
       this.isConnected = true;
@@ -578,6 +580,22 @@ class App {
     }
   }
 
+  showGameScreenForDesktop() {
+    // For desktop, show game screen but keep homepage visible (overlay)
+    const gameScreen = document.getElementById('game-screen');
+    const homepage = document.getElementById('homepage-screen');
+    
+    if (gameScreen) {
+      gameScreen.classList.remove('hidden');
+    }
+    
+    // Make homepage overlay on desktop (positioned absolutely over game screen)
+    if (homepage) {
+      homepage.classList.add('absolute', 'inset-0', 'z-10');
+      homepage.classList.remove('flex-1');
+    }
+  }
+
   showGameScreen() {
     const homepage = document.getElementById('homepage-screen');
     const gameScreen = document.getElementById('game-screen');
@@ -588,6 +606,29 @@ class App {
     
     if (gameScreen) {
       gameScreen.classList.remove('hidden');
+    }
+  }
+
+  showHomepage() {
+    const homepage = document.getElementById('homepage-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const deviceInfo = this.deviceDetector.getDeviceInfo();
+    
+    if (homepage) {
+      homepage.classList.remove('hidden');
+      // On desktop, keep it as overlay; on mobile, restore normal layout
+      if (!deviceInfo.isMobile) {
+        homepage.classList.add('absolute', 'inset-0', 'z-10');
+        homepage.classList.remove('flex-1');
+      } else {
+        homepage.classList.remove('absolute', 'inset-0', 'z-10');
+        homepage.classList.add('flex-1');
+      }
+    }
+    
+    // On mobile, hide game screen; on desktop, keep it visible
+    if (deviceInfo.isMobile && gameScreen) {
+      gameScreen.classList.add('hidden');
     }
   }
 
