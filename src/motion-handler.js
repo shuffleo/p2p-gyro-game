@@ -21,12 +21,40 @@ export class MotionHandler {
   async requestPermission() {
     console.log('🔄 Requesting DeviceMotionEvent permission...');
     console.log('DeviceMotionEvent available:', typeof DeviceMotionEvent !== 'undefined');
+    
+    // First, check permission status using navigator.permissions.query() if available
+    if (navigator.permissions && navigator.permissions.query) {
+      try {
+        console.log('🔍 Checking permission status via navigator.permissions.query()...');
+        // Try different permission names that might be supported
+        const permissionStatus = await navigator.permissions.query({ name: 'accelerometer' }).catch(() => null) ||
+                                 await navigator.permissions.query({ name: 'gyroscope' }).catch(() => null) ||
+                                 await navigator.permissions.query({ name: 'magnetometer' }).catch(() => null) ||
+                                 await navigator.permissions.query({ name: 'device-motion' }).catch(() => null);
+        
+        if (permissionStatus) {
+          console.log('📊 Permission status:', permissionStatus.state);
+          if (permissionStatus.state === 'granted') {
+            console.log('✅ Permission already granted');
+            return true;
+          } else if (permissionStatus.state === 'denied') {
+            console.error('❌ Permission denied');
+            return false;
+          }
+          // If 'prompt', continue to request permission
+        }
+      } catch (error) {
+        console.log('⚠️ navigator.permissions.query() not supported or failed:', error.message);
+        // Continue with DeviceMotionEvent.requestPermission()
+      }
+    }
+    
     console.log('DeviceMotionEvent.requestPermission available:', typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function');
     
     // DeviceMotionEvent permission (iOS 13+)
     if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
       try {
-        console.log('📱 iOS detected - requesting permission via API');
+        console.log('📱 iOS detected - requesting permission via DeviceMotionEvent.requestPermission()');
         const permission = await DeviceMotionEvent.requestPermission();
         console.log('📱 Permission result:', permission);
         if (permission === 'granted') {
