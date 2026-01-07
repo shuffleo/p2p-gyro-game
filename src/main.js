@@ -318,6 +318,10 @@ class App {
       // Initialize sensors and visualization based on device type
       const deviceInfo = this.deviceDetector.getDeviceInfo();
       
+      // Set connected state BEFORE initializing sensors (so they can send data)
+      this.isConnected = true;
+      console.log('✅ Connection established, isConnected = true');
+      
       // For mobile, show game screen and initialize sensors
       // For desktop, visualization is already initialized on page load
       if (deviceInfo.isMobile) {
@@ -327,13 +331,12 @@ class App {
         // Wait a moment for DOM to update
         await new Promise(resolve => setTimeout(resolve, 100));
         
+        // Now initialize sensors (isConnected is already true)
         await this.initializeMobileSensors();
       } else {
         // Desktop: visualization already initialized, just hide homepage
         this.showGameScreen();
       }
-      
-      this.isConnected = true;
       
       // Start status update interval
       this.startDataStreamStatusUpdates();

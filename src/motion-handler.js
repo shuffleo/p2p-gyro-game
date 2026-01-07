@@ -19,17 +19,30 @@ export class MotionHandler {
   }
 
   async requestPermission() {
+    console.log('🔄 Requesting DeviceMotionEvent permission...');
+    console.log('DeviceMotionEvent available:', typeof DeviceMotionEvent !== 'undefined');
+    console.log('DeviceMotionEvent.requestPermission available:', typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function');
+    
     // DeviceMotionEvent permission (iOS 13+)
     if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
       try {
+        console.log('📱 iOS detected - requesting permission via API');
         const permission = await DeviceMotionEvent.requestPermission();
-        return permission === 'granted';
+        console.log('📱 Permission result:', permission);
+        if (permission === 'granted') {
+          console.log('✅ DeviceMotionEvent permission granted');
+          return true;
+        } else {
+          console.error('❌ DeviceMotionEvent permission denied:', permission);
+          return false;
+        }
       } catch (error) {
-        console.error('Motion permission request failed:', error);
+        console.error('❌ Motion permission request failed:', error);
         return false;
       }
     }
     // Permission not required in most browsers
+    console.log('✅ Permission not required (Chrome/Android)');
     return true;
   }
 
@@ -83,6 +96,15 @@ export class MotionHandler {
     if (!acceleration || (acceleration.x === null && acceleration.y === null && acceleration.z === null)) {
       console.warn('⚠️ Received null acceleration data');
       return;
+    }
+    
+    // Log first few events to verify they're firing
+    if (!this._eventCount) {
+      this._eventCount = 0;
+    }
+    this._eventCount++;
+    if (this._eventCount <= 3) {
+      console.log(`🏃 Motion event #${this._eventCount}:`, { acceleration, rotationRate: event.rotationRate });
     }
     
     // Calculate velocity (integrate acceleration)

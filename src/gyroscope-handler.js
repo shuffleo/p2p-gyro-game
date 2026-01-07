@@ -92,6 +92,12 @@ export class GyroscopeHandler {
     // Extract orientation data
     const { alpha, beta, gamma } = event;
     
+    // Check if data is valid
+    if (alpha === null && beta === null && gamma === null) {
+      console.warn('⚠️ Received null orientation data');
+      return;
+    }
+    
     // Normalize data
     const normalizedData = normalizeGyroData(alpha, beta, gamma);
     
@@ -100,6 +106,15 @@ export class GyroscopeHandler {
     
     // Store last data
     this.lastData = data;
+    
+    // Log first few events to verify they're firing
+    if (!this._eventCount) {
+      this._eventCount = 0;
+    }
+    this._eventCount++;
+    if (this._eventCount <= 3) {
+      console.log(`📱 Gyroscope event #${this._eventCount}:`, { alpha, beta, gamma });
+    }
     
     // Throttle transmission to avoid overwhelming network
     this.throttledSend(data);
