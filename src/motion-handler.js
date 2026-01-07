@@ -80,16 +80,49 @@ export class MotionHandler {
       return;
     }
 
+    // Check if we're in a secure context (HTTPS required for Chrome)
+    if (!window.isSecureContext) {
+      console.error('❌ Not in secure context! Device sensors require HTTPS.');
+      alert('Device sensors require HTTPS. Please access this page via HTTPS.');
+      throw new Error('Not in secure context. HTTPS required for device sensors.');
+    }
+
     this.callback = callback;
     this.deviceId = deviceId;
     this.isListening = true;
     this.lastTimestamp = Date.now();
+    this._eventCount = 0;
+    this._lastEventTime = null;
 
     // Listen to devicemotion events
-    window.addEventListener('devicemotion', this.handleMotion.bind(this), true);
+    const handler = this.handleMotion.bind(this);
+    window.addEventListener('devicemotion', handler, true);
     
     console.log('✅ Motion event listener added');
     console.log('📡 Waiting for devicemotion events...');
+    console.log('🔒 Secure context:', window.isSecureContext);
+    console.log('🌐 Protocol:', window.location.protocol);
+    
+    // Set up a timeout to check if events are actually firing
+    this._eventCheckTimeout = setTimeout(() => {
+      if (this._eventCount === 0) {
+        console.error('❌ No devicemotion events received after 3 seconds!');
+        console.error('Possible issues:');
+        console.error('1. Not in secure context (HTTPS required)');
+        console.error('2. Device doesn\'t have motion sensors');
+        console.error('3. Browser settings blocking sensor access');
+        console.error('4. Try moving your device to trigger events');
+        
+        // Try to provide helpful error message
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+          alert('⚠️ Device sensors require HTTPS. Please access this page via HTTPS (not HTTP).');
+        } else {
+          alert('⚠️ No motion data detected. Please:\n1. Make sure your device has motion sensors\n2. Try moving your device\n3. Check browser settings for sensor permissions');
+        }
+      } else {
+        console.log(`✅ Motion events are firing! (${this._eventCount} events received)`);
+      }
+    }, 3000);
   }
 
   stopListening() {
@@ -99,11 +132,19 @@ export class MotionHandler {
 
     window.removeEventListener('devicemotion', this.handleMotion.bind(this), true);
     
+    // Clear timeout if still running
+    if (this._eventCheckTimeout) {
+      clearTimeout(this._eventCheckTimeout);
+      this._eventCheckTimeout = null;
+    }
+    
     this.isListening = false;
     this.callback = null;
     this.lastAcceleration = { x: 0, y: 0, z: 0 };
     this.lastVelocity = { x: 0, y: 0, z: 0 };
     this.lastTimestamp = null;
+    this._eventCount = 0;
+    this._lastEventTime = null;
     
     console.log('Motion listening stopped');
   }

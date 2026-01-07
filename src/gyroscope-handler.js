@@ -98,15 +98,48 @@ export class GyroscopeHandler {
       throw new Error('Permission not granted. Call requestPermission() first.');
     }
 
+    // Check if we're in a secure context (HTTPS required for Chrome)
+    if (!window.isSecureContext) {
+      console.error('❌ Not in secure context! Device sensors require HTTPS.');
+      alert('Device sensors require HTTPS. Please access this page via HTTPS.');
+      throw new Error('Not in secure context. HTTPS required for device sensors.');
+    }
+
     this.callback = callback;
     this.deviceId = deviceId;
     this.isListening = true;
+    this._eventCount = 0;
+    this._lastEventTime = null;
 
     // Listen to deviceorientation events
-    window.addEventListener('deviceorientation', this.handleOrientation.bind(this), true);
+    const handler = this.handleOrientation.bind(this);
+    window.addEventListener('deviceorientation', handler, true);
     
     console.log('✅ Gyroscope event listener added');
     console.log('📡 Waiting for deviceorientation events...');
+    console.log('🔒 Secure context:', window.isSecureContext);
+    console.log('🌐 Protocol:', window.location.protocol);
+    
+    // Set up a timeout to check if events are actually firing
+    this._eventCheckTimeout = setTimeout(() => {
+      if (this._eventCount === 0) {
+        console.error('❌ No deviceorientation events received after 3 seconds!');
+        console.error('Possible issues:');
+        console.error('1. Not in secure context (HTTPS required)');
+        console.error('2. Device doesn\'t have a gyroscope');
+        console.error('3. Browser settings blocking sensor access');
+        console.error('4. Try rotating your device to trigger events');
+        
+        // Try to provide helpful error message
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+          alert('⚠️ Device sensors require HTTPS. Please access this page via HTTPS (not HTTP).');
+        } else {
+          alert('⚠️ No gyroscope data detected. Please:\n1. Make sure your device has a gyroscope\n2. Try rotating your device\n3. Check browser settings for sensor permissions');
+        }
+      } else {
+        console.log(`✅ Gyroscope events are firing! (${this._eventCount} events received)`);
+      }
+    }, 3000);
   }
 
   stopListening() {
@@ -116,9 +149,17 @@ export class GyroscopeHandler {
 
     window.removeEventListener('deviceorientation', this.handleOrientation.bind(this), true);
     
+    // Clear timeout if still running
+    if (this._eventCheckTimeout) {
+      clearTimeout(this._eventCheckTimeout);
+      this._eventCheckTimeout = null;
+    }
+    
     this.isListening = false;
     this.callback = null;
     this.lastData = null;
+    this._eventCount = 0;
+    this._lastEventTime = null;
     
     console.log('Gyroscope listening stopped');
   }
