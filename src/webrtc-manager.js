@@ -82,9 +82,12 @@ export class WebRTCManager {
     
     // Use hash of keyphrase as peer ID for consistency
     // This ensures the same keyphrase always maps to the same peer ID
-    const shortPeerId = await this.hashKeyphrase(displayKeyphrase.toLowerCase().trim());
+    // Both devices will hash the same keyphrase to get the same peer ID
+    const normalizedKeyphrase = displayKeyphrase.toLowerCase().trim();
+    const shortPeerId = await this.hashKeyphrase(normalizedKeyphrase);
     
     console.log('Initializing peer with display keyphrase:', displayKeyphrase);
+    console.log('Normalized keyphrase:', normalizedKeyphrase);
     console.log('Using hashed peer ID for PeerJS:', shortPeerId);
     
     return new Promise((resolve, reject) => {
@@ -186,20 +189,22 @@ export class WebRTCManager {
   async connectToPeer(peerIdKeyphrase, maxRetries = 3) {
     const normalizedKeyphrase = peerIdKeyphrase.toLowerCase().trim();
     
-    console.log('Connecting to peer with keyphrase:', normalizedKeyphrase);
+    console.log('🔗 Connecting to peer with keyphrase:', normalizedKeyphrase);
     
     if (!this.peer || !this.isReady) {
       throw new Error('Peer not ready. Please wait for peer to initialize.');
     }
 
-    // For now, we'll use the keyphrase directly as peer ID
-    // In a production system, you'd have a mapping service
-    // But for P2P, we can use a hash or the keyphrase itself
-    const targetPeerId = normalizedKeyphrase.replace(/[^a-z0-9-]/g, '').substring(0, 20);
+    // CRITICAL: Hash the keyphrase to get the same peer ID that the target device is using
+    // This ensures we're connecting to the correct peer ID
+    const targetPeerId = await this.hashKeyphrase(normalizedKeyphrase);
+    
+    console.log('🎯 Target peer ID (hashed from keyphrase):', targetPeerId);
+    console.log('📋 Our peer ID:', this.peerId);
     
     // Check if already connected
     if (this.connections.has(targetPeerId)) {
-      console.log('Already connected to peer:', targetPeerId);
+      console.log('✅ Already connected to peer:', targetPeerId);
       return this.connections.get(targetPeerId);
     }
 
@@ -266,17 +271,21 @@ export class WebRTCManager {
           return;
         }
         
-        // Set up connection timeout (20 seconds)
+        // Set up connection timeout (30 seconds - increased for cross-network)
         connectionTimeout = setTimeout(() => {
           if (!hasResolved) {
             hasResolved = true;
-            console.error('Connection timeout to:', targetPeerId);
+            console.error('❌ Connection timeout to:', targetPeerId);
+            console.error('Make sure the other device:');
+            console.error('1. Has loaded the page and shows "Ready to connect"');
+            console.error('2. Is using the exact same keyphrase');
+            console.error('3. Is online and connected to internet');
             if (dataConnection) {
               dataConnection.close();
             }
-            reject(new Error(`Connection timeout. The peer may not be online or may have a different ID.`));
+            reject(new Error(`Connection timeout after 30s. Ensure the other device is online and ready, and you're using the exact same keyphrase.`));
           }
-        }, 20000);
+        }, 30000);
 
         // Connection opened successfully
         dataConnection.on('open', () => {
@@ -284,7 +293,8 @@ export class WebRTCManager {
           hasResolved = true;
           clearTimeout(connectionTimeout);
           
-          console.log('Data connection opened to:', targetPeerId);
+          console.log('✅ Data connection opened successfully to:', targetPeerId);
+          console.log('   Connection object:', dataConnection);
           this.connections.set(targetPeerId, dataConnection);
           this.reconnectAttempts.delete(targetPeerId);
           this.updateConnectionStatus('connected', `Connected to peer`);
@@ -321,12 +331,24 @@ export class WebRTCManager {
         // Connection error
         dataConnection.on('error', (error) => {
           clearTimeout(connectionTimeout);
-          console.error('Data connection error:', error);
+          console.error('❌ Data connection error:', error);
+          console.error('Error type:', error.type);
+          console.error('Error message:', error.message);
+          console.error('Target peer ID was:', targetPeerId);
           
           if (!hasResolved) {
             hasResolved = true;
             this.connections.delete(targetPeerId);
-            reject(error);
+            
+            // Provide more helpful error messages
+            let errorMessage = error.message;
+            if (error.type === 'peer-unavailable') {
+              errorMessage = `Peer unavailable. Make sure:\n1. The other device has loaded the page\n2. The other device shows "Ready to connect"\n3. You're using the exact same keyphrase\n4. Both devices are online`;
+            } else if (error.type === 'network') {
+              errorMessage = `Network error. Check your internet connection and try again.`;
+            }
+            
+            reject(new Error(errorMessage));
           }
         });
 
