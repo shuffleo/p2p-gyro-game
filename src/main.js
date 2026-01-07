@@ -477,17 +477,26 @@ class App {
   }
 
   handleGyroData(data) {
-    console.log('Received gyro data:', data);
+    console.log('📱 Received gyro data:', data);
     if (this.visualization) {
-      this.visualization.updateRotation(data.alpha, data.beta, data.gamma);
+      // Check if values are valid numbers
+      const alpha = typeof data.alpha === 'number' && !isNaN(data.alpha) ? data.alpha : 0;
+      const beta = typeof data.beta === 'number' && !isNaN(data.beta) ? data.beta : 0;
+      const gamma = typeof data.gamma === 'number' && !isNaN(data.gamma) ? data.gamma : 0;
+      
+      console.log('🎯 Updating rotation:', { alpha, beta, gamma });
+      this.visualization.updateRotation(alpha, beta, gamma);
     } else {
-      console.warn('Visualization not initialized, cannot update rotation');
+      console.warn('⚠️ Visualization not initialized, cannot update rotation');
     }
   }
 
   handleMotionData(data) {
+    console.log('🏃 Received motion data:', data);
     if (this.visualization) {
       this.visualization.updateMotion(data);
+    } else {
+      console.warn('⚠️ Visualization not initialized, cannot update motion');
     }
   }
 

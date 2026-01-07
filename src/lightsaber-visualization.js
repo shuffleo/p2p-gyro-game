@@ -255,17 +255,64 @@ export class LightsaberVisualization {
     // Convert degrees to radians
     // Map device orientation to lightsaber rotation
     // We want the lightsaber to swing naturally with phone movement
-    this.targetRotation.x = degToRad(beta || 0);
-    this.targetRotation.y = degToRad(alpha || 0);
-    this.targetRotation.z = -degToRad(gamma || 0);
+    // 
+    // Device orientation mapping:
+    // - alpha: rotation around z-axis (0-360°), compass direction
+    // - beta: front-to-back tilt (-180 to 180°)
+    // - gamma: left-to-right tilt (-90 to 90°)
+    //
+    // Lightsaber rotation mapping:
+    // - x: pitch (beta) - tilt forward/back
+    // - y: yaw (alpha) - rotate around vertical axis
+    // - z: roll (gamma) - tilt left/right
+    
+    const alphaRad = degToRad(alpha || 0);
+    const betaRad = degToRad(beta || 0);
+    const gammaRad = degToRad(gamma || 0);
+    
+    // Map to lightsaber rotation
+    // Beta (front-back tilt) -> X rotation (pitch)
+    // Alpha (compass) -> Y rotation (yaw)
+    // Gamma (left-right tilt) -> Z rotation (roll, inverted)
+    this.targetRotation.x = betaRad;
+    this.targetRotation.y = alphaRad;
+    this.targetRotation.z = -gammaRad;
+    
+    console.log('🔄 Rotation updated:', {
+      input: { alpha, beta, gamma },
+      target: this.targetRotation,
+      current: this.currentRotation
+    });
   }
 
   updateMotion(motionData) {
     // Use motion data to add more dynamic movement
     // Speed affects how quickly the lightsaber responds
-    if (motionData && motionData.speed) {
+    if (motionData && motionData.speed !== undefined) {
       // Higher speed = less smoothing (more responsive)
-      this.rotationSmoothing = Math.max(0.1, 0.2 - (motionData.speed * 0.001));
+      // Clamp smoothing between 0.05 and 0.2
+      const speedFactor = Math.min(motionData.speed / 10, 1); // Normalize speed
+      this.rotationSmoothing = Math.max(0.05, Math.min(0.2, 0.2 - (speedFactor * 0.15)));
+      
+      console.log('⚡ Motion update:', {
+        speed: motionData.speed,
+        smoothing: this.rotationSmoothing
+      });
+    }
+    
+    // Also use rotation rate if available for more responsive movement
+    if (motionData && motionData.rotationRate) {
+      const { alpha, beta, gamma } = motionData.rotationRate;
+      if (alpha !== undefined || beta !== undefined || gamma !== undefined) {
+        // Add rotation rate to current rotation for more dynamic movement
+        const rateAlpha = degToRad(alpha || 0) * 0.1;
+        const rateBeta = degToRad(beta || 0) * 0.1;
+        const rateGamma = degToRad(gamma || 0) * 0.1;
+        
+        this.targetRotation.x += rateBeta;
+        this.targetRotation.y += rateAlpha;
+        this.targetRotation.z -= rateGamma;
+      }
     }
   }
 
