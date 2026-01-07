@@ -501,6 +501,10 @@ class App {
 
   handleGyroData(data) {
     console.log('📱 Received gyro data:', data);
+    
+    // Update status
+    this.updateDataStreamStatus('gyro');
+    
     if (this.visualization) {
       // Check if values are valid numbers
       const alpha = typeof data.alpha === 'number' && !isNaN(data.alpha) ? data.alpha : 0;
@@ -528,6 +532,9 @@ class App {
   }
 
   handleAudioData(data) {
+    // Update status
+    this.updateDataStreamStatus('audio');
+    
     if (this.visualization && data.volume !== undefined) {
       // Map volume (0-1) to blade length
       this.visualization.updateBladeLength(data.volume);
