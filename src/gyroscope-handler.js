@@ -20,30 +20,69 @@ export class GyroscopeHandler {
   async requestPermission() {
     // Check if DeviceOrientationEvent is supported
     if (!window.DeviceOrientationEvent) {
+      console.error('❌ DeviceOrientationEvent is not supported in this browser');
       throw new Error('DeviceOrientationEvent is not supported in this browser');
     }
 
+    console.log('🔄 Requesting DeviceOrientationEvent permission...');
+    
+    // First, check permission status using navigator.permissions.query() if available
+    if (navigator.permissions && navigator.permissions.query) {
+      try {
+        console.log('🔍 Checking permission status via navigator.permissions.query()...');
+        // Note: 'device-orientation' might not be supported in all browsers
+        // Some browsers use 'accelerometer', 'gyroscope', or 'magnetometer'
+        const permissionStatus = await navigator.permissions.query({ name: 'accelerometer' }).catch(() => null) ||
+                                 await navigator.permissions.query({ name: 'gyroscope' }).catch(() => null) ||
+                                 await navigator.permissions.query({ name: 'device-orientation' }).catch(() => null);
+        
+        if (permissionStatus) {
+          console.log('📊 Permission status:', permissionStatus.state);
+          if (permissionStatus.state === 'granted') {
+            this.permissionGranted = true;
+            console.log('✅ Permission already granted');
+            return true;
+          } else if (permissionStatus.state === 'denied') {
+            this.permissionGranted = false;
+            console.error('❌ Permission denied');
+            return false;
+          }
+          // If 'prompt', continue to request permission
+        }
+      } catch (error) {
+        console.log('⚠️ navigator.permissions.query() not supported or failed:', error.message);
+        // Continue with DeviceOrientationEvent.requestPermission()
+      }
+    }
+
+    console.log('DeviceOrientationEvent.requestPermission available:', typeof DeviceOrientationEvent.requestPermission === 'function');
+
     // iOS 13+ requires user gesture to request permission
-    // Try to request permission
+    // Try to request permission using DeviceOrientationEvent.requestPermission()
     try {
-      // Request permission (works in some browsers)
+      // Request permission (works in some browsers, especially iOS)
       if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        console.log('📱 iOS detected - requesting permission via DeviceOrientationEvent.requestPermission()');
         const permission = await DeviceOrientationEvent.requestPermission();
+        console.log('📱 Permission result:', permission);
         if (permission === 'granted') {
           this.permissionGranted = true;
+          console.log('✅ DeviceOrientationEvent permission granted');
           return true;
         } else {
           this.permissionGranted = false;
+          console.error('❌ DeviceOrientationEvent permission denied:', permission);
           return false;
         }
       } else {
         // Permission not required (Chrome, most browsers)
         // Check if we can access orientation data
+        console.log('✅ Permission not required (Chrome/Android)');
         this.permissionGranted = true;
         return true;
       }
     } catch (error) {
-      console.error('Permission request failed:', error);
+      console.error('❌ Permission request failed:', error);
       this.permissionGranted = false;
       return false;
     }
