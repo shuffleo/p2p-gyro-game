@@ -28,6 +28,24 @@
           </div>
           
           <div class="border-t border-gray-700 pt-2 mt-2">
+            <p class="text-xs text-gray-400 mb-2 font-medium">Data Streams:</p>
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs">🎤 Audio:</span>
+                <span id="audio-status" class="text-xs font-mono">-</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs">📱 Gyroscope:</span>
+                <span id="gyro-status" class="text-xs font-mono">-</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs">🏃 Motion:</span>
+                <span id="motion-status" class="text-xs font-mono">-</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="border-t border-gray-700 pt-2 mt-2">
             <p class="text-xs text-gray-400 mb-1">Your Peer ID:</p>
             <p class="text-xs font-mono break-all" id="game-peer-id"></p>
           </div>

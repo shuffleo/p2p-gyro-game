@@ -22,6 +22,14 @@ class App {
     this.currentDeviceId = null;
     this.isConnected = false;
     
+    // Data stream status tracking
+    this.dataStreamStatus = {
+      audio: { lastUpdate: null, count: 0, rate: 0 },
+      gyro: { lastUpdate: null, count: 0, rate: 0 },
+      motion: { lastUpdate: null, count: 0, rate: 0 }
+    };
+    this.statusUpdateInterval = null;
+    
     this.init();
   }
 
@@ -505,6 +513,10 @@ class App {
 
   handleMotionData(data) {
     console.log('🏃 Received motion data:', data);
+    
+    // Update status
+    this.updateDataStreamStatus('motion');
+    
     if (this.visualization) {
       this.visualization.updateMotion(data);
     } else {
@@ -744,11 +756,130 @@ class App {
       }
     }
     
+    // Stop status updates
+    this.stopDataStreamStatusUpdates();
+    
     // Return to homepage
     this.showHomepage();
     
     // Reinitialize room (but keep visualization on desktop)
     this.initializeRoom();
+  }
+
+  updateDataStreamStatus(type) {
+    const now = Date.now();
+    const status = this.dataStreamStatus[type];
+    
+    if (status) {
+      status.lastUpdate = now;
+      status.count++;
+    }
+  }
+
+  startDataStreamStatusUpdates() {
+    // Clear any existing interval
+    if (this.statusUpdateInterval) {
+      clearInterval(this.statusUpdateInterval);
+    }
+    
+    // Update status display every 500ms
+    this.statusUpdateInterval = setInterval(() => {
+      this.updateDataStreamStatusDisplay();
+    }, 500);
+  }
+
+  stopDataStreamStatusUpdates() {
+    if (this.statusUpdateInterval) {
+      clearInterval(this.statusUpdateInterval);
+      this.statusUpdateInterval = null;
+    }
+    
+    // Reset status displays
+    this.resetDataStreamStatusDisplay();
+  }
+
+  updateDataStreamStatusDisplay() {
+    const now = Date.now();
+    const timeout = 2000; // Consider inactive if no data for 2 seconds
+    
+    // Audio status
+    const audioStatus = this.dataStreamStatus.audio;
+    const audioElement = document.getElementById('audio-status');
+    if (audioElement) {
+      if (audioStatus.lastUpdate && (now - audioStatus.lastUpdate) < timeout) {
+        const timeSinceUpdate = Math.round((now - audioStatus.lastUpdate) / 100) / 10;
+        audioElement.textContent = `Active (${audioStatus.rate}/s)`;
+        audioElement.className = 'text-xs font-mono text-green-400';
+      } else {
+        audioElement.textContent = 'Inactive';
+        audioElement.className = 'text-xs font-mono text-gray-500';
+      }
+    }
+    
+    // Gyroscope status
+    const gyroStatus = this.dataStreamStatus.gyro;
+    const gyroElement = document.getElementById('gyro-status');
+    if (gyroElement) {
+      if (gyroStatus.lastUpdate && (now - gyroStatus.lastUpdate) < timeout) {
+        const timeSinceUpdate = Math.round((now - gyroStatus.lastUpdate) / 100) / 10;
+        gyroElement.textContent = `Active (${gyroStatus.rate}/s)`;
+        gyroElement.className = 'text-xs font-mono text-green-400';
+      } else {
+        gyroElement.textContent = 'Inactive';
+        gyroElement.className = 'text-xs font-mono text-gray-500';
+      }
+    }
+    
+    // Motion status
+    const motionStatus = this.dataStreamStatus.motion;
+    const motionElement = document.getElementById('motion-status');
+    if (motionElement) {
+      if (motionStatus.lastUpdate && (now - motionStatus.lastUpdate) < timeout) {
+        const timeSinceUpdate = Math.round((now - motionStatus.lastUpdate) / 100) / 10;
+        motionElement.textContent = `Active (${motionStatus.rate}/s)`;
+        motionElement.className = 'text-xs font-mono text-green-400';
+      } else {
+        motionElement.textContent = 'Inactive';
+        motionElement.className = 'text-xs font-mono text-gray-500';
+      }
+    }
+    
+    // Calculate rates (reset count every second)
+    if (!this.lastRateCalculation || (now - this.lastRateCalculation) >= 1000) {
+      this.lastRateCalculation = now;
+      audioStatus.rate = audioStatus.count;
+      gyroStatus.rate = gyroStatus.count;
+      motionStatus.rate = motionStatus.count;
+      audioStatus.count = 0;
+      gyroStatus.count = 0;
+      motionStatus.count = 0;
+    }
+  }
+
+  resetDataStreamStatusDisplay() {
+    const audioElement = document.getElementById('audio-status');
+    const gyroElement = document.getElementById('gyro-status');
+    const motionElement = document.getElementById('motion-status');
+    
+    if (audioElement) {
+      audioElement.textContent = '-';
+      audioElement.className = 'text-xs font-mono text-gray-500';
+    }
+    if (gyroElement) {
+      gyroElement.textContent = '-';
+      gyroElement.className = 'text-xs font-mono text-gray-500';
+    }
+    if (motionElement) {
+      motionElement.textContent = '-';
+      motionElement.className = 'text-xs font-mono text-gray-500';
+    }
+    
+    // Reset status data
+    this.dataStreamStatus = {
+      audio: { lastUpdate: null, count: 0, rate: 0 },
+      gyro: { lastUpdate: null, count: 0, rate: 0 },
+      motion: { lastUpdate: null, count: 0, rate: 0 }
+    };
   }
 }
 
