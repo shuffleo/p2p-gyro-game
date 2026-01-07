@@ -34,10 +34,18 @@ class App {
   async initializeRoom() {
     try {
       // Generate peer ID keyphrase
+      console.log('Generating peer ID keyphrase...');
       this.peerIdKeyphrase = generateKeyphrase();
+      console.log('Generated peer ID:', this.peerIdKeyphrase);
+      
+      if (!this.peerIdKeyphrase) {
+        throw new Error('Failed to generate peer ID keyphrase');
+      }
+      
       this.currentDeviceId = this.deviceDetector.getDeviceInfo().id;
       
       // Display peer ID in UI immediately (before WebRTC init)
+      console.log('Updating peer ID display...');
       this.updatePeerIdDisplay();
       
       // Initialize WebRTC
@@ -113,6 +121,8 @@ class App {
     // Regenerate Peer ID button
     const regeneratePeerIdBtn = document.getElementById('regenerate-peer-id-btn');
     regeneratePeerIdBtn?.addEventListener('click', async () => {
+      console.log('Regenerate button clicked');
+      
       // Only allow regeneration if not connected
       if (this.isConnected) {
         if (!confirm('You are currently connected. Regenerating will disconnect you. Continue?')) {
@@ -121,12 +131,19 @@ class App {
         this.disconnect();
       }
       
-      // Generate new peer ID
-      this.peerIdKeyphrase = generateKeyphrase();
-      this.updatePeerIdDisplay();
-      
-      // Reinitialize WebRTC with new peer ID
       try {
+        // Generate new peer ID
+        console.log('Regenerating peer ID keyphrase...');
+        this.peerIdKeyphrase = generateKeyphrase();
+        console.log('New peer ID:', this.peerIdKeyphrase);
+        
+        if (!this.peerIdKeyphrase) {
+          throw new Error('Failed to generate new peer ID keyphrase');
+        }
+        
+        // Update display immediately
+        this.updatePeerIdDisplay();
+        
         // Close existing WebRTC connection if any
         if (this.webrtcManager) {
           this.webrtcManager.closeConnection();
@@ -136,7 +153,7 @@ class App {
         // Initialize with new peer ID
         await this.initializeWebRTC();
       } catch (error) {
-        console.error('Failed to reinitialize WebRTC:', error);
+        console.error('Failed to regenerate peer ID:', error);
         showErrorWithCopy(`Failed to regenerate peer ID: ${error.message}`);
       }
     });
@@ -417,8 +434,14 @@ class App {
     const peerIdDisplay = document.getElementById('your-peer-id-display');
     const gamePeerId = document.getElementById('game-peer-id');
     
+    console.log('updatePeerIdDisplay called, peerIdKeyphrase:', this.peerIdKeyphrase);
+    console.log('peerIdDisplay element:', peerIdDisplay);
+    
     if (peerIdDisplay) {
       peerIdDisplay.value = this.peerIdKeyphrase || '';
+      console.log('Set peerIdDisplay.value to:', peerIdDisplay.value);
+    } else {
+      console.warn('peerIdDisplay element not found');
     }
     
     if (gamePeerId) {
