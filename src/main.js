@@ -703,14 +703,25 @@ class App {
       this.webrtcManager = null;
     }
     
-    // Dispose visualization
-    if (this.visualization) {
-      this.visualization.dispose();
-      this.visualization = null;
-    }
-    
     // Reset state
     this.isConnected = false;
+    
+    // For desktop, keep visualization running (just reset rotation)
+    const deviceInfo = this.deviceDetector.getDeviceInfo();
+    if (!deviceInfo.isMobile && this.visualization) {
+      // Reset lightsaber to default position
+      this.visualization.targetRotation = { x: 0, y: 0, z: 0 };
+      this.visualization.currentRotation = { x: 0, y: 0, z: 0 };
+      this.visualization.targetBladeLength = this.visualization.baseBladeLength;
+      this.visualization.currentBladeLength = this.visualization.baseBladeLength;
+      console.log('Reset lightsaber to default position');
+    } else {
+      // For mobile, dispose visualization
+      if (this.visualization) {
+        this.visualization.dispose();
+        this.visualization = null;
+      }
+    }
     
     // Show homepage
     const homepage = document.getElementById('homepage-screen');
