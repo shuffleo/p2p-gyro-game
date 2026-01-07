@@ -653,6 +653,11 @@ export class WebRTCManager {
     return this.isReady;
   }
 
+  // Public method for testing - hash a keyphrase
+  async hashKeyphraseForTesting(keyphrase) {
+    return await this.hashKeyphrase(keyphrase.toLowerCase().trim());
+  }
+
   closeConnection() {
     // Cancel all reconnection attempts
     this.reconnectTimers.forEach((timeoutId) => {

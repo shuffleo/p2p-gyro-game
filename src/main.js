@@ -224,6 +224,12 @@ class App {
       }
     });
 
+    // Test connection button
+    const testConnectionBtn = document.getElementById('test-connection-btn');
+    testConnectionBtn?.addEventListener('click', () => {
+      this.testConnection();
+    });
+
     // Exit game button
     const exitGameBtn = document.getElementById('exit-game-btn');
     exitGameBtn?.addEventListener('click', () => {
@@ -541,6 +547,54 @@ class App {
     if (gameScreen) {
       gameScreen.classList.remove('hidden');
     }
+  }
+
+  async testConnection() {
+    const peerIdInput = document.getElementById('peer-id-input');
+    const peerIdKeyphrase = peerIdInput?.value.trim();
+    
+    if (!peerIdKeyphrase) {
+      alert('Please enter a peer ID to test');
+      return;
+    }
+    
+    const normalizedKeyphrase = normalizeKeyphrase(peerIdKeyphrase);
+    
+    console.log('=== CONNECTION TEST ===');
+    console.log('Input keyphrase:', peerIdKeyphrase);
+    console.log('Normalized keyphrase:', normalizedKeyphrase);
+    
+    if (this.webrtcManager) {
+      console.log('Our peer ID:', this.webrtcManager.getPeerId());
+      console.log('Our display keyphrase:', this.webrtcManager.getDisplayKeyphrase());
+      console.log('Peer is ready:', this.webrtcManager.isPeerReady());
+      
+      // Hash the target keyphrase to see what peer ID we'd connect to
+      try {
+        // We need to access the hashKeyphrase method - let's add it to the public API
+        const targetHash = await this.webrtcManager.hashKeyphraseForTesting(normalizedKeyphrase);
+        console.log('Target peer ID (hashed):', targetHash);
+        console.log('Match?', targetHash === this.webrtcManager.getPeerId() ? 'YES (same device)' : 'NO (different device)');
+      } catch (error) {
+        console.error('Error hashing keyphrase:', error);
+      }
+    } else {
+      console.log('WebRTC manager not initialized');
+    }
+    
+    console.log('=== END TEST ===');
+    
+    // Show results in alert
+    const results = [
+      'Connection Test Results:',
+      `Input: ${peerIdKeyphrase}`,
+      `Our Peer ID: ${this.webrtcManager?.getPeerId() || 'Not initialized'}`,
+      `Ready: ${this.webrtcManager?.isPeerReady() ? 'Yes' : 'No'}`,
+      '',
+      'Check browser console for detailed logs'
+    ].join('\n');
+    
+    alert(results);
   }
 
   disconnect() {
