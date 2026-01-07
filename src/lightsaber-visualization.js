@@ -32,14 +32,31 @@ export class LightsaberVisualization {
   }
 
   initScene(container, canvasId = 'three-canvas') {
+    console.log('LightsaberVisualization.initScene called');
+    console.log('Container:', container);
+    console.log('Container clientWidth:', container.clientWidth);
+    console.log('Container clientHeight:', container.clientHeight);
+    
     this.container = container;
+    
+    // Ensure container has dimensions
+    if (container.clientWidth === 0 || container.clientHeight === 0) {
+      console.warn('Container has zero dimensions, using window size');
+      // Use window size as fallback
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      container.style.width = width + 'px';
+      container.style.height = height + 'px';
+    }
     
     // Create scene with dark background
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x000000);
     
     // Create camera
-    const aspect = container.clientWidth / container.clientHeight;
+    const width = container.clientWidth || window.innerWidth;
+    const height = container.clientHeight || window.innerHeight;
+    const aspect = width / height;
     this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
     this.camera.position.set(0, 0, 8);
     this.camera.lookAt(0, 0, 0);
@@ -47,10 +64,14 @@ export class LightsaberVisualization {
     // Find or create canvas
     let canvas = document.getElementById(canvasId);
     if (!canvas) {
+      console.log('Canvas not found, creating new one');
       canvas = document.createElement('canvas');
       canvas.id = canvasId;
       canvas.className = 'w-full h-full';
+      canvas.style.display = 'block';
       container.appendChild(canvas);
+    } else {
+      console.log('Found existing canvas:', canvas);
     }
     
     // Create renderer
@@ -59,34 +80,48 @@ export class LightsaberVisualization {
       canvas: canvas,
       alpha: false
     });
-    this.renderer.setSize(container.clientWidth, container.clientHeight);
+    this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    
+    console.log('Renderer created, size:', width, 'x', height);
     
     // Create lightsaber
     this.createLightsaber();
+    console.log('Lightsaber created:', this.lightsaber);
     
     // Add lighting
     this.setupLighting();
     
     // Handle window resize
-    window.addEventListener('resize', () => this.resize());
+    this.resizeHandler = () => this.resize();
+    window.addEventListener('resize', this.resizeHandler);
     
     // Start animation loop
     this.animate();
+    console.log('Animation loop started');
   }
 
   createLightsaber() {
+    console.log('Creating lightsaber...');
+    
     // Create a group to hold hilt and blade
     this.lightsaber = new THREE.Group();
     
     // Create hilt (handle)
     this.createHilt();
+    console.log('Hilt created');
     
     // Create blade
     this.createBlade();
+    console.log('Blade created');
     
     // Add to scene
-    this.scene.add(this.lightsaber);
+    if (this.scene) {
+      this.scene.add(this.lightsaber);
+      console.log('Lightsaber added to scene');
+    } else {
+      console.error('Scene is null, cannot add lightsaber');
+    }
     
     // Reset rotation
     this.targetRotation = { x: 0, y: 0, z: 0 };
@@ -266,7 +301,15 @@ export class LightsaberVisualization {
     
     // Render scene
     if (this.renderer && this.scene && this.camera) {
-      this.renderer.render(this.scene, this.camera);
+      try {
+        this.renderer.render(this.scene, this.camera);
+      } catch (error) {
+        console.error('Error rendering scene:', error);
+      }
+    } else {
+      if (!this.renderer) console.warn('Renderer is null');
+      if (!this.scene) console.warn('Scene is null');
+      if (!this.camera) console.warn('Camera is null');
     }
   }
 

@@ -309,6 +309,12 @@ class App {
       // Initialize sensors and visualization based on device type
       const deviceInfo = this.deviceDetector.getDeviceInfo();
       
+      // Show game screen first (so visualization has a container)
+      this.showGameScreen();
+      
+      // Wait a moment for DOM to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       if (deviceInfo.isMobile) {
         // Mobile: initialize gyroscope, motion, and microphone
         await this.initializeMobileSensors();
@@ -316,9 +322,6 @@ class App {
         // Desktop: initialize visualization
         await this.initializeVisualization();
       }
-      
-      // Show game screen
-      this.showGameScreen();
       
       this.isConnected = true;
       
@@ -386,18 +389,54 @@ class App {
 
   async initializeVisualization() {
     try {
-      const container = document.getElementById('game-screen');
-      if (!container) {
+      // Wait for game screen to be visible
+      const gameScreen = document.getElementById('game-screen');
+      if (!gameScreen) {
         console.error('Game screen container not found');
         return;
       }
       
+      // Get the canvas container (the relative div inside game-screen)
+      // The structure is: game-screen > flex-1 relative > canvas
+      const container = gameScreen.querySelector('.flex-1.relative');
+      if (!container) {
+        console.error('Canvas container not found in game screen');
+        return;
+      }
+      
+      console.log('🎨 Initializing visualization...');
+      console.log('Container:', container);
+      console.log('Container dimensions:', container.clientWidth, 'x', container.clientHeight);
+      
+      // Dispose existing visualization if any
+      if (this.visualization) {
+        console.log('Disposing existing visualization');
+        this.visualization.dispose();
+        this.visualization = null;
+      }
+      
       this.visualization = new LightsaberVisualization();
+      
+      // Wait a moment for DOM to update and ensure container has dimensions
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Check container dimensions again
+      if (container.clientWidth === 0 || container.clientHeight === 0) {
+        console.warn('Container has zero dimensions, forcing size');
+        container.style.width = '100%';
+        container.style.height = '100%';
+        container.style.minHeight = '400px';
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
       this.visualization.initScene(container, 'three-canvas');
       
-      console.log('Visualization initialized');
+      console.log('✅ Visualization initialized successfully');
+      console.log('Scene:', this.visualization.scene);
+      console.log('Lightsaber:', this.visualization.lightsaber);
+      console.log('Renderer:', this.visualization.renderer);
     } catch (error) {
-      console.error('Failed to initialize visualization:', error);
+      console.error('❌ Failed to initialize visualization:', error);
       showErrorWithCopy(`Failed to initialize visualization: ${error.message}`);
     }
   }
@@ -436,8 +475,11 @@ class App {
   }
 
   handleGyroData(data) {
+    console.log('Received gyro data:', data);
     if (this.visualization) {
       this.visualization.updateRotation(data.alpha, data.beta, data.gamma);
+    } else {
+      console.warn('Visualization not initialized, cannot update rotation');
     }
   }
 
