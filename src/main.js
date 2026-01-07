@@ -335,6 +335,9 @@ class App {
       
       this.isConnected = true;
       
+      // Start status update interval
+      this.startDataStreamStatusUpdates();
+      
     } catch (error) {
       console.error('Failed to connect:', error);
       showErrorWithCopy(`Connection failed: ${error.message}`);
