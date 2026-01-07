@@ -21,6 +21,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "niceware": "^4.0.0",
     "peerjs": "^1.5.2",
     "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.4",

@@ -11,8 +11,6 @@ export class WebRTCManager {
     this.connectionStateCallbacks = [];
     this.connectionQualityCallbacks = [];
     this.connectionStatus = 'disconnected';
-    this.roomCode = null;
-    this.deviceId = null;
     this.discoveryInterval = null;
     this.reconnectAttempts = new Map(); // Map of peerId -> attempt count
     this.reconnectTimers = new Map(); // Map of peerId -> timeout ID
@@ -27,13 +25,11 @@ export class WebRTCManager {
     };
   }
 
-  async initializePeer(roomCode, deviceId) {
-    this.roomCode = roomCode;
-    this.deviceId = deviceId;
-    
-    // Use room code + device ID as peer ID for uniqueness
-    // PeerJS requires alphanumeric IDs, so we'll use the room code as base
-    const peerId = `${roomCode}_${deviceId.slice(-8)}`;
+  async initializePeer(peerIdKeyphrase) {
+    // Use the keyphrase directly as peer ID
+    // PeerJS accepts alphanumeric and some special chars, but keyphrases use spaces
+    // Convert spaces to hyphens for PeerJS compatibility
+    const peerId = peerIdKeyphrase.replace(/\s+/g, '-').toLowerCase();
     
     return new Promise((resolve, reject) => {
       try {
@@ -51,9 +47,6 @@ export class WebRTCManager {
           this.connectionStatus = 'connected';
           this.updateConnectionStatus('connected', 'Peer initialized');
           console.log('PeerJS peer opened with ID:', id);
-          
-          // Start automatic peer discovery
-          this.startAutomaticDiscovery();
           
           resolve(id);
         });
@@ -97,7 +90,10 @@ export class WebRTCManager {
     });
   }
 
-  async connectToPeer(peerId) {
+  async connectToPeer(peerIdKeyphrase) {
+    // Normalize keyphrase: convert spaces to hyphens for PeerJS compatibility
+    const peerId = peerIdKeyphrase.replace(/\s+/g, '-').toLowerCase();
+    
     if (!this.peer || !this.peer.open) {
       throw new Error('Peer not initialized');
     }
@@ -255,17 +251,7 @@ export class WebRTCManager {
     try {
       const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
       
-      // Handle discovery ping messages
-      if (parsedData.type === 'discovery_ping') {
-        this.handleDiscoveryPing(parsedData, peerId);
-        return;
-      }
-      
-      // Handle discovery pong responses
-      if (parsedData.type === 'discovery_pong') {
-        this.handleDiscoveryPong(parsedData, peerId);
-        return;
-      }
+      // Discovery messages removed - using direct peer-to-peer connections
       
       // Handle quality ping/pong
       if (parsedData.type === 'quality_ping') {

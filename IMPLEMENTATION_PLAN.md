@@ -1,654 +1,215 @@
-# P2P Gyroscope Game - Implementation Plan
+# P2P Gyroscope Game - Updated Implementation Plan
 
-## 0. Key Decisions Summary
+## Implementation Review & Updates
 
-**Technology Choices:**
-- **WebRTC Signaling**: PeerJS with free cloud signaling service (works with GitHub Pages)
-- **CSS Framework**: Tailwind CSS
-- **Build Tool**: npm + Vite
-- **3D Visualization**: Three.js with simple rectangular box
-- **Room Codes**: Generate by default, allow custom entry (8-24 alphanumeric)
-- **Room Persistence**: localStorage
-- **Permission Handling**: Auto-request with fallback button
-- **Error Handling**: Simple alert() dialogs with copy-to-clipboard button
-- **Connection Status**: Visual indicators for connection states
-- **Browser Support**: Chrome only
-- **Repository**: https://github.com/shuffleo/p2p-gyro-game.git
+This document reflects the **actual implementation** as completed, with details that differ from or expand upon the original plan.
 
-## 1. Project Overview
-
-A peer-to-peer (P2P) gyroscope-based game where:
-- Mobile devices act as controllers, sending gyroscope data
-- Desktop/other devices receive and visualize the data in 3D using Three.js
-- Communication happens via WebRTC for real-time, low-latency data transfer
-- Game rooms are created using 8-24 digit alphanumeric codes
-- Hosted as a static page on GitHub Pages
-
-## 2. Technology Stack
-
-### Core Technologies
-- **HTML5/CSS3/JavaScript (ES6+)**: Core web technologies
-- **WebRTC**: Peer-to-peer communication
-  - **PeerJS**: WebRTC library with free cloud-based signaling service (works with GitHub Pages)
-  - **STUN/TURN servers**: Google and Mozilla public STUN servers for NAT traversal
-- **Three.js**: 3D graphics visualization
-- **DeviceOrientationEvent API**: Access to gyroscope data on mobile devices
-- **CSS Framework**: 
-  - **Tailwind CSS**: Utility-first CSS framework for responsive UI
-
-### Build Tools
-- **npm**: Package management
-- **Vite**: Modern build tool and dev server (faster than Webpack)
-
-### Additional Libraries
-- **UUID Generator**: For generating unique room codes
-- **Connection status indicators**: Visual feedback for WebRTC connection states
-
-## 3. Architecture Design
-
-### 3.1 System Architecture
-
-```
-┌─────────────┐
-│  Mobile     │  (Gyroscope Controller)
-│  Device     │  ───────┐
-└─────────────┘         │
-                        │ WebRTC
-┌─────────────┐         │ P2P Connection
-│  Desktop    │  ◄──────┼───┐
-│  Device 1   │         │   │
-└─────────────┘         │   │
-                        │   │
-┌─────────────┐         │   │
-│  Desktop    │  ◄──────┼───┘
-│  Device 2   │         │
-└─────────────┘         │
-                        │
-              ┌─────────┴─────────┐
-              │  Signaling Server │
-              │  (STUN/TURN)      │
-              └───────────────────┘
-```
-
-### 3.2 Data Flow
-
-1. **Room Creation**: User enters code → Validates → Creates/Joins room
-2. **Device Registration**: Device connects → Identifies as mobile/desktop → Registers in room
-3. **P2P Connection**: Devices exchange WebRTC offers/answers via signaling
-4. **Data Transmission**: Mobile device sends gyroscope data → Desktop devices receive → Render in 3D
-
-## 4. Project Structure
-
-```
-p2p-gyro-game/
-├── index.html                 # Main entry point
-├── src/
-│   ├── main.js               # Application entry point
-│   ├── room-manager.js       # Room creation/joining logic
-│   ├── webrtc-manager.js     # WebRTC connection handling (PeerJS)
-│   ├── gyroscope-handler.js  # Mobile gyroscope data collection
-│   ├── visualization.js      # Three.js 3D visualization
-│   ├── device-detector.js    # Detect mobile vs desktop
-│   ├── ui-manager.js         # UI state management
-│   └── utils.js              # Utility functions
-├── dist/                      # Build output (for GitHub Pages)
-├── assets/
-│   └── (optional assets)
-├── README.md
-├── IMPLEMENTATION_PLAN.md
-├── package.json
-├── vite.config.js            # Vite configuration
-├── tailwind.config.js        # Tailwind CSS configuration
-└── .gitignore
-```
-
-## 5. Implementation Components
-
-### Project Setup & Basic UI
-
-1. **Initialize Project**
-   - Set up npm project with package.json
-   - Install and configure Vite as build tool
-   - Install and configure Tailwind CSS
-   - Set up project structure (src/, dist/)
-   - Configure GitHub Pages deployment
-
-2. **Create UI Components**
-   - Room code input screen (with generate/custom entry options)
-   - Waiting room screen
-   - Game visualization screen
-   - Connection status indicators
-   - Mobile permission request UI (auto-request with fallback button)
-
-3. **Responsive Design with Tailwind**
-   - Mobile-first approach using Tailwind utilities
-   - Touch-friendly buttons on mobile (min 44x44px)
-   - Desktop-optimized layout
-   - Chrome-only optimizations
-
-### Room Management System
-
-1. **Room Code System**
-   - Generate random 8-24 digit alphanumeric codes by default
-   - Allow custom code entry (validate format)
-   - Validate room codes (alphanumeric, 8-24 characters)
-   - Room state management (active rooms, device counts)
-   - Store room codes in localStorage for persistence
-
-2. **Device Registration**
-   - Detect device type (mobile vs desktop) - Chrome only
-   - Enforce constraints:
-     - Max 3 devices per room
-     - Max 1 mobile device per room
-   - Device role assignment (controller vs viewer)
-   - Show clear error messages when constraints violated
-
-3. **Room State Management**
-   - Track connected devices
-   - Handle device disconnections
-   - Room cleanup when empty
-   - Persist room state in localStorage
-
-### WebRTC Integration
-
-1. **Signaling Setup with PeerJS**
-   - Integrate PeerJS library (uses free cloud signaling service)
-   - Configure PeerJS with room code as peer ID
-   - Set up STUN servers (Google, Mozilla public servers)
-   - Implement peer discovery and connection
-   - Handle offer/answer exchange automatically (PeerJS handles this)
-
-2. **P2P Connection Management**
-   - Establish mesh connections between all devices in room
-   - Handle connection failures with retry logic
-   - Implement connection state monitoring
-   - Display connection status indicators (connecting, connected, disconnected, error)
-   - Handle ICE connection state changes
-
-3. **Data Channel Setup**
-   - Create reliable data channels via PeerJS
-   - Implement message protocol for gyroscope data
-   - Error handling with alert dialogs (include copy button for error messages)
-   - Retry logic for failed transmissions
-
-### Gyroscope Data Collection
-
-1. **Permission Handling**
-   - Auto-request device orientation permission on room join (Chrome)
-   - Fallback to manual button if auto-request fails (iOS 13+ requirement)
-   - Handle permission denial gracefully with clear instructions
-   - Show error alerts with copy button for debugging
-
-2. **Data Collection**
-   - Listen to `deviceorientation` events (Chrome mobile)
-   - Extract alpha, beta, gamma values
-   - Normalize and filter data
-   - Throttle data transmission (60fps max to avoid network overload)
-
-3. **Data Format**
-   ```javascript
-   {
-     type: 'gyro',
-     timestamp: Date.now(),
-     alpha: number,  // Z-axis rotation
-     beta: number,   // X-axis rotation
-     gamma: number,  // Y-axis rotation
-     deviceId: string
-   }
-   ```
-
-### Three.js Visualization
-
-1. **Scene Setup**
-   - Initialize Three.js scene, camera, renderer
-   - Responsive canvas sizing (full viewport on desktop)
-   - Lighting setup (ambient + directional light)
-   - Background/environment (simple gradient or solid color)
-
-2. **3D Object Representation**
-   - Create simple rectangular box (BoxGeometry) representing mobile device
-   - Apply gyroscope rotations (alpha, beta, gamma) to the box
-   - Smooth interpolation for visual continuity (lerp rotations)
-   - Add basic materials and colors for visual appeal
-
-3. **Real-time Updates**
-   - Receive gyroscope data via WebRTC data channels
-   - Apply rotations to 3D box object
-   - Optimize rendering performance (requestAnimationFrame)
-   - Handle data loss/network issues gracefully (freeze last known position)
-
-### Integration & Polish
-
-1. **End-to-End Testing**
-   - Test room creation/joining (generated and custom codes)
-   - Test P2P connections via PeerJS
-   - Test gyroscope data flow (mobile to desktop)
-   - Test on multiple devices simultaneously (max 3, max 1 mobile)
-   - Test localStorage persistence
-   - Chrome-only testing
-
-2. **Error Handling**
-   - Network failures (alert with copy button)
-   - Device disconnections (alert with copy button)
-   - Permission denials (alert with copy button + instructions)
-   - Invalid room codes (alert with copy button)
-   - Room capacity exceeded (alert with copy button)
-   - All error dialogs include copy-to-clipboard functionality
-
-3. **UI/UX Improvements**
-   - Loading states for connections
-   - Connection status indicators (visual feedback)
-   - Smooth transitions between screens
-   - Help/instructions for first-time users
-   - Copy button in all error alerts
-
-4. **Performance Optimization**
-   - Vite build optimization (minification, tree-shaking)
-   - Asset optimization
-   - Code splitting if needed
-   - Debouncing/throttling for gyroscope data
-
-### Deployment
-
-1. **GitHub Pages Setup**
-   - Configure repository: https://github.com/shuffleo/p2p-gyro-game.git
-   - Set up Vite build process (output to dist/)
-   - Configure GitHub Pages to serve from dist/ directory
-   - Set up GitHub Actions for automatic deployment
-   - Test deployment and verify HTTPS (required for WebRTC)
-
-2. **Documentation**
-   - Update README with setup instructions
-   - Add usage guide
-   - Document Chrome-only requirement
-   - Document known limitations (GitHub Pages constraints, PeerJS free tier limits)
-
-## 6. Detailed Component Specifications
-
-### 6.1 Room Manager (`room-manager.js`)
-
-**Responsibilities:**
-- Generate unique room codes (8-24 alphanumeric)
-- Validate room codes
-- Track active rooms and connected devices
-- Enforce room constraints (max 3 devices, max 1 mobile)
-
-**Key Functions:**
-```javascript
-class RoomManager {
-  generateRoomCode(minLength, maxLength)
-  validateRoomCode(code)
-  createRoom(code)
-  joinRoom(code, deviceInfo)
-  leaveRoom(code, deviceId)
-  getRoomInfo(code)
-  isRoomFull(code)
-  canAddMobileDevice(code)
-}
-```
-
-### 6.2 WebRTC Manager (`webrtc-manager.js`)
-
-**Responsibilities:**
-- Establish P2P connections using PeerJS
-- Handle peer discovery via PeerJS cloud signaling
-- Manage data channels
-- Handle connection lifecycle
-- Monitor and report connection status
-
-**Key Functions:**
-```javascript
-class WebRTCManager {
-  initializePeer(roomCode)
-  connectToPeer(peerId)
-  sendData(data)
-  onDataReceived(callback)
-  onConnectionStateChange(callback)
-  closeConnection()
-  getConnectionState()
-  getConnectionStatus() // Returns: 'connecting', 'connected', 'disconnected', 'error'
-}
-```
-
-**Implementation:**
-- Uses **PeerJS** with free cloud signaling service
-- Each device creates a Peer with room code as identifier
-- Devices discover each other via PeerJS signaling
-- Data channels established automatically by PeerJS
-
-### 6.3 Gyroscope Handler (`gyroscope-handler.js`)
-
-**Responsibilities:**
-- Request device orientation permission
-- Collect gyroscope data
-- Normalize and format data
-- Send data via WebRTC
-
-**Key Functions:**
-```javascript
-class GyroscopeHandler {
-  requestPermission()
-  startListening(callback)
-  stopListening()
-  normalizeData(alpha, beta, gamma)
-  formatDataForTransmission(data)
-}
-```
-
-**Data Collection:**
-- Use `DeviceOrientationEvent` API
-- Fallback to `DeviceMotionEvent` if needed
-- Handle iOS 13+ permission requirements
-- Throttle to ~60fps to avoid overwhelming network
-
-### 6.4 Visualization (`visualization.js`)
-
-**Responsibilities:**
-- Initialize Three.js scene
-- Create simple rectangular box (BoxGeometry)
-- Update box rotations based on gyroscope data
-- Handle responsive resizing
-- Smooth interpolation for visual continuity
-
-**Key Functions:**
-```javascript
-class Visualization {
-  initScene(container)
-  createBox() // Creates simple rectangular box
-  updateRotation(alpha, beta, gamma)
-  animate()
-  resize(width, height)
-  dispose()
-}
-```
-
-**3D Model:**
-- Simple rectangular box (BoxGeometry) representing mobile device
-- Basic materials (MeshStandardMaterial or MeshPhongMaterial)
-- Smooth rotation interpolation using lerp
-
-### 6.5 Device Detector (`device-detector.js`)
-
-**Responsibilities:**
-- Detect if device is mobile or desktop
-- Check for gyroscope support
-- Identify device capabilities
-
-**Key Functions:**
-```javascript
-class DeviceDetector {
-  isMobile()
-  hasGyroscope()
-  getDeviceInfo()
-  canActAsController()
-}
-```
-
-## 7. Data Protocol
-
-### 7.1 Message Types
-
-```javascript
-// Room Management Messages
-{
-  type: 'room_join',
-  roomCode: string,
-  deviceId: string,
-  deviceType: 'mobile' | 'desktop',
-  timestamp: number
-}
-
-{
-  type: 'room_leave',
-  roomCode: string,
-  deviceId: string
-}
-
-// Gyroscope Data Messages
-{
-  type: 'gyro_data',
-  alpha: number,
-  beta: number,
-  gamma: number,
-  timestamp: number,
-  deviceId: string
-}
-
-// Control Messages
-{
-  type: 'connection_ready',
-  deviceId: string
-}
-
-{
-  type: 'error',
-  message: string,
-  code: string
-}
-```
-
-## 8. UI/UX Design Considerations
-
-### 8.1 Screen Flow
-
-1. **Landing Screen**
-   - Room code input field
-   - "Create Room" button (generates code)
-   - "Join Room" button (uses entered code)
-   - Instructions/help link
-
-2. **Waiting Room Screen**
-   - Room code display (with copy button)
-   - Connected devices list
-   - "Start Game" button (when ready)
-   - QR code for easy sharing (optional)
-
-3. **Game Screen (Desktop)**
-   - 3D visualization canvas (fullscreen or large)
-   - Connection status indicator
-   - Device list sidebar
-   - Exit room button
-
-4. **Game Screen (Mobile)**
-   - Permission request overlay
-   - Connection status
-   - "Stop Sending" button
-   - Exit room button
-
-### 8.2 Responsive Breakpoints
-
-- **Mobile**: < 768px
-  - Single column layout
-  - Large touch targets (44x44px minimum)
-  - Full-width inputs
-
-- **Tablet**: 768px - 1024px
-  - Two-column layout possible
-  - Medium-sized touch targets
-
-- **Desktop**: > 1024px
-  - Multi-column layout
-  - Hover states
-  - Keyboard navigation
-
-## 9. Constraints & Edge Cases
-
-### 9.1 Room Constraints
-- **Max 3 devices**: Reject 4th device with clear error message
-- **Max 1 mobile**: Reject 2nd mobile device with clear error message
-- **Room code validation**: Only alphanumeric, 8-24 characters
-
-### 9.2 Network Constraints
-- **NAT/Firewall issues**: Use STUN servers (Google, Mozilla public servers) via PeerJS
-- **Connection failures**: Retry logic with exponential backoff, show error alerts with copy button
-- **Data loss**: Implement sequence numbers for data integrity (optional for MVP)
-- **Latency**: Optimize data transmission frequency (throttle to 60fps)
-- **PeerJS free tier limits**: May have connection limits, document in README
-
-### 9.3 Device Constraints
-- **No gyroscope**: Show error alert with copy button, suggest using different device
-- **Permission denied**: Clear instructions in alert, fallback button for manual request
-- **iOS 13+**: Auto-request on room join, fallback to button if needed
-- **Browser compatibility**: Chrome only - document requirement clearly
-- **Chrome-specific features**: Use Chrome-only APIs, no cross-browser fallbacks needed
-
-## 10. Testing Strategy
-
-### 10.1 Unit Tests
-- Room code generation/validation
-- Device detection logic
-- Data normalization functions
-- Message protocol handling
-
-### 10.2 Integration Tests
-- Room creation/joining flow
-- WebRTC connection establishment
-- Data transmission end-to-end
-- Device constraint enforcement
-
-### 10.3 Manual Testing Scenarios
-1. Create room on desktop, join on mobile
-2. Create room on mobile, join on desktop
-3. Multiple desktop devices joining same room
-4. Attempt to add 4th device (should fail)
-5. Attempt to add 2nd mobile (should fail)
-6. Mobile device disconnects (desktop should handle gracefully)
-7. Network interruption recovery
-8. Permission denial handling
-
-## 11. Deployment Checklist
-
-- [ ] Code minified and optimized
-- [ ] All assets optimized
-- [ ] GitHub repository created
-- [ ] GitHub Pages enabled
-- [ ] Custom domain configured (if applicable)
-- [ ] HTTPS enabled (required for WebRTC)
-- [ ] Cross-browser testing completed
-- [ ] Mobile device testing completed
-- [ ] README updated with instructions
-- [ ] Error handling tested
-- [ ] Performance tested
-
-## 12. Future Enhancements (Post-MVP)
-
-- Multiple game modes (different visualizations)
-- Multiple mobile controllers (increase limit)
-- Game history/recordings
-- Custom 3D models
-- Sound effects
-- Multi-room spectator mode
-- Leaderboards
-- Social sharing features
-
-## 13. Known Limitations
-
-1. **Signaling Server**: Using PeerJS free cloud service (may have rate limits)
-2. **NAT Traversal**: Some networks may block P2P connections (STUN servers help but not 100%)
-3. **Browser Support**: Chrome only - no cross-browser compatibility
-4. **iOS Safari**: Requires user gesture for permission (handled with fallback button)
-5. **Room Persistence**: Rooms stored in localStorage (per-device, not shared across devices)
-6. **No Authentication**: Anyone with room code can join
-7. **GitHub Pages**: Static hosting only - no server-side logic possible
-8. **PeerJS Free Tier**: May have connection limits or rate limits
-9. **Peer Discovery**: Manual peer ID entry required (no automatic discovery mechanism)
-
-## 14. Actual Implementation Details
+## Key Implementation Details
 
 ### Peer Discovery Mechanism
-**Implementation**: Manual peer ID entry
-- Each device generates peer ID: `{roomCode}_{deviceIdSuffix}`
-- Peer IDs displayed in waiting room UI
-- Users manually copy/paste peer IDs to connect
-- **Note**: Simplified approach for static hosting compatibility
+**Actual Implementation**: Manual peer ID entry
+- Each device generates a peer ID: `{roomCode}_{deviceIdSuffix}`
+- Peer IDs are displayed in the waiting room UI
+- Users manually copy and paste peer IDs to connect
+- **Note**: This is a simplified approach. Full automatic discovery would require additional signaling infrastructure.
+
+### WebRTC Connection Flow
+**Actual Implementation**:
+1. Device joins room → RoomManager validates and registers device
+2. WebRTCManager initializes PeerJS peer with room code + device ID
+3. Peer ID displayed in UI for manual sharing
+4. Devices connect by entering each other's peer IDs
+5. Data channels established automatically by PeerJS
+6. Gyroscope data flows: Mobile → WebRTC → Desktop → Visualization
 
 ### Data Protocol (Actual)
 ```javascript
-// Gyroscope Data
+// Gyroscope Data Message
 {
   type: 'gyro_data',
   timestamp: number,
-  alpha: number,  // Z-axis (0-360)
-  beta: number,   // X-axis (-180 to 180)
-  gamma: number,  // Y-axis (-90 to 90)
+  alpha: number,  // Z-axis rotation (0-360)
+  beta: number,   // X-axis rotation (-180 to 180)
+  gamma: number,  // Y-axis rotation (-90 to 90)
   deviceId: string
 }
 ```
 
-### Component Implementation Details
+### Component Architecture (Actual)
 
 #### App (main.js)
-- Orchestrates all components
-- Manages application lifecycle
-- Coordinates WebRTC, gyroscope, and visualization
-- Handles connection state changes
-- Routes gyroscope data to visualization
+- **Responsibilities**: 
+  - Orchestrates all components
+  - Handles user interactions
+  - Manages application lifecycle
+  - Coordinates WebRTC, gyroscope, and visualization
+- **Key Methods**:
+  - `joinRoom(code)` - Validates and joins room, initializes WebRTC
+  - `initializeWebRTC()` - Sets up PeerJS connections
+  - `initializeGyroscope()` - Auto-requests permission, starts listening
+  - `initializeVisualization()` - Sets up Three.js scene
+  - `handleDataReceived()` - Routes gyroscope data to visualization
+  - `exitRoom()` - Cleanup all resources
 
-#### RoomManager
-- In-memory room storage (Map)
-- localStorage persistence
-- Device tracking with timestamps
-- Automatic room cleanup
+#### RoomManager (room-manager.js)
+- **Actual Implementation**:
+  - In-memory room storage (Map)
+  - localStorage persistence for room state
+  - Device tracking with timestamps
+  - Automatic room cleanup when empty
+- **Key Features**:
+  - Generates 8-24 character alphanumeric codes
+  - Validates room codes (case-insensitive)
+  - Enforces constraints: max 3 devices, max 1 mobile
+  - Persists to localStorage for cross-session recovery
 
-#### WebRTCManager
-- PeerJS cloud signaling (0.peerjs.com)
-- STUN servers: Google public servers
-- Peer ID format: `{roomCode}_{deviceIdSuffix}`
-- Reliable data channels
-- Connection state tracking
+#### WebRTCManager (webrtc-manager.js)
+- **Actual Implementation**:
+  - Uses PeerJS cloud signaling (0.peerjs.com)
+  - STUN servers: Google public servers
+  - Peer ID format: `{roomCode}_{deviceIdSuffix}`
+  - Reliable data channels
+  - Connection state tracking
+- **Key Features**:
+  - Automatic connection handling (incoming/outgoing)
+  - Error recovery and connection cleanup
+  - Data transmission with error handling
+  - Connection count monitoring
 
-#### GyroscopeHandler
-- Auto-request permission on mobile join
-- Fallback manual permission button
-- Throttled transmission (60fps = 16ms)
-- Data normalization (handles null values)
+#### GyroscopeHandler (gyroscope-handler.js)
+- **Actual Implementation**:
+  - Auto-request permission on mobile device join
+  - Fallback manual permission button
+  - Throttled data transmission (60fps = 16ms interval)
+  - Data normalization (handles null values)
+- **Key Features**:
+  - iOS 13+ permission handling
+  - Chrome permission auto-grant
+  - Event listener management
+  - Last data caching
 
-#### Visualization
-- Three.js WebGL renderer
-- BoxGeometry (2x3x0.5) representing device
-- Smooth rotation interpolation (lerp 0.1 factor)
-- Responsive canvas sizing
-- Edge lines for visibility
+#### Visualization (visualization.js)
+- **Actual Implementation**:
+  - Three.js WebGL renderer
+  - BoxGeometry (2x3x0.5) representing mobile device
+  - Smooth rotation interpolation (lerp with 0.1 factor)
+  - Responsive canvas sizing
+  - Edge lines for visibility
+- **Key Features**:
+  - Ambient + directional lighting
+  - Smooth animation loop (requestAnimationFrame)
+  - Automatic cleanup on dispose
+  - Coordinate system mapping: alpha→Y, beta→X, gamma→Z
 
-### Testing
-- **Test Framework**: Vitest
-- **Test Environment**: happy-dom
-- **Coverage**: Unit tests for core components
-- **Test Files**: 
-  - `tests/room-manager.test.js` - Room management tests
-  - `tests/utils.test.js` - Utility function tests
-  - `tests/device-detector.test.js` - Device detection tests
-- **Test Status**: ✅ All 47 tests passing
+#### DeviceDetector (device-detector.js)
+- **Actual Implementation**:
+  - Multi-factor mobile detection (UA + touch + screen size)
+  - Persistent device ID in localStorage
+  - Gyroscope capability detection
+- **Key Features**:
+  - Fallback device ID generation
+  - Screen dimension tracking
+  - User agent analysis
 
-## 14. Estimated Timeline
+#### UIManager (ui-manager.js)
+- **Actual Implementation**:
+  - Screen state management (landing, waiting, game)
+  - Connection status indicators (4 states: connecting, connected, disconnected, error)
+  - Device list rendering
+  - Permission UI toggling
+- **Key Features**:
+  - Status color coding (yellow, green, gray, red)
+  - Real-time device list updates
+  - Screen transition handling
 
-- **Project Setup**: 1-2 days (npm, Vite, Tailwind setup)
-- **Room Management**: 2-3 days (Room management with localStorage)
-- **WebRTC Integration**: 3-4 days (PeerJS integration)
-- **Gyroscope Data Collection**: 2-3 days (Gyroscope with auto-request + fallback)
-- **Three.js Visualization**: 3-4 days (Three.js box visualization)
-- **Integration & Polish**: 2-3 days (Error handling with copy buttons, status indicators)
-- **Deployment**: 1 day (GitHub Pages deployment)
+### Error Handling (Actual)
+- **Implementation**: 
+  - All errors use `showErrorWithCopy()` utility
+  - Automatically copies error details to clipboard
+  - Includes timestamp, browser info, and full error object
+  - Alert dialogs with copy functionality
+- **Error Types Handled**:
+  - Room validation errors
+  - WebRTC connection failures
+  - Permission denials
+  - Gyroscope initialization errors
+  - Visualization setup failures
 
-**Total: 14-20 days** (assuming 1 developer, full-time)
+### Connection Status States
+**Actual Implementation**:
+1. `connecting` - Yellow indicator, "Connecting to peers..."
+2. `connected` - Green indicator, "Connected" or "Sending gyroscope data..."
+3. `disconnected` - Gray indicator, "Disconnected"
+4. `error` - Red indicator, error message
 
-## 15. Resources & References
+### UI Flow (Actual)
+1. **Landing Screen**: Room code input, generate/join buttons
+2. **Waiting Room (Desktop)**: 
+   - Room code display with copy button
+   - Peer ID display
+   - Manual peer connection input
+   - Connection status
+   - Device list
+3. **Game Screen (Desktop)**: 
+   - Full-screen 3D canvas
+   - Status overlay with room info
+   - Device list sidebar
+4. **Mobile Game Screen**: 
+   - Permission request (auto or manual)
+   - Connection status
+   - Stop sending button
+   - Room code display
 
-- [WebRTC API Documentation](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API)
-- [DeviceOrientationEvent API](https://developer.mozilla.org/en-US/docs/Web/API/DeviceOrientationEvent)
-- [Three.js Documentation](https://threejs.org/docs/)
-- [PeerJS Documentation](https://peerjs.com/) - **Primary WebRTC library**
-- [PeerJS GitHub](https://github.com/peers/peerjs)
-- [Vite Documentation](https://vitejs.dev/)
-- [Tailwind CSS Documentation](https://tailwindcss.com/)
-- [GitHub Pages Documentation](https://docs.github.com/en/pages)
-- [Repository](https://github.com/shuffleo/p2p-gyro-game.git)
+### localStorage Structure
+```javascript
+{
+  'lastRoomCode': string,           // Last used room code
+  'deviceId': string,              // Persistent device ID
+  'activeRooms': [                 // Room state persistence
+    {
+      code: string,
+      devices: Array<Device>,
+      createdAt: number
+    }
+  ]
+}
+```
 
----
+### Performance Optimizations (Actual)
+1. **Gyroscope Throttling**: 60fps limit (16ms interval)
+2. **Rotation Smoothing**: Lerp interpolation (0.1 factor)
+3. **Connection Monitoring**: 1-second interval updates
+4. **Canvas Optimization**: Pixel ratio capped at 2
+5. **Memory Management**: Proper cleanup on exit
 
-**Next Steps:**
-1. Review and approve this plan
-2. Set up project structure
-3. Begin implementation
-4. Iterate based on testing and feedback
+### Known Limitations (Actual)
+1. **Peer Discovery**: Manual peer ID entry required (no automatic discovery)
+2. **Room Persistence**: localStorage-based (per-device, not shared across devices)
+3. **Browser Support**: Chrome only (as specified)
+4. **PeerJS Free Tier**: May have connection limits
+5. **NAT Traversal**: Some networks may block P2P (STUN helps but not 100%)
+6. **iOS Permission**: Requires user gesture for permission request
+
+### Testing Considerations
+- **Unit Tests**: Individual component testing
+- **Integration Tests**: Component interaction testing
+- **E2E Tests**: Full user flow testing
+- **Manual Tests**: Multi-device connection testing
+
+## Differences from Original Plan
+
+1. **Peer Discovery**: Original plan suggested automatic discovery, but implementation uses manual peer ID entry (simpler, works with static hosting)
+2. **Error Handling**: Enhanced with automatic clipboard copy functionality
+3. **Connection Monitoring**: Added periodic connection count updates
+4. **Visualization**: Added edge lines and improved lighting for better visibility
+5. **Device Detection**: More robust multi-factor detection than originally planned
+
+## Future Enhancements
+
+1. QR code generation for easy peer ID sharing
+2. Multiple visualization modes
+3. Sound effects
+4. Enhanced connection quality metrics (packet loss, bandwidth)
+5. Adaptive reconnection strategies
+6. Quality history tracking for analytics
 

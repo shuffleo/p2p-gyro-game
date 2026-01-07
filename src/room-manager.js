@@ -1,31 +1,23 @@
 // Room Management System
+import { generateKeyphrase, validateKeyphrase, normalizeKeyphrase } from './keyphrase-generator.js';
+
 export class RoomManager {
   constructor() {
     this.activeRooms = new Map(); // In-memory room state
     this.loadRoomsFromStorage();
   }
 
-  generateRoomCode(minLength = 8, maxLength = 24) {
-    const length = Math.floor(Math.random() * (maxLength - minLength + 1)) + minLength;
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    
-    for (let i = 0; i < length; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    
-    return code;
+  generateRoomCode() {
+    // Generate keyphrase (6 words + 3 numbers)
+    return generateKeyphrase();
   }
 
   validateRoomCode(code) {
-    if (!code || typeof code !== 'string') {
-      return false;
-    }
-    
-    const alphanumericRegex = /^[A-Z0-9]+$/i;
-    const length = code.length;
-    
-    return length >= 8 && length <= 24 && alphanumericRegex.test(code);
+    return validateKeyphrase(code);
+  }
+
+  normalizeRoomCode(code) {
+    return normalizeKeyphrase(code);
   }
 
   canJoinRoom(roomCode, deviceInfo) {
