@@ -86,9 +86,13 @@ class App {
       });
       
       // Initialize peer with keyphrase
+      console.log('Initializing WebRTC with keyphrase:', this.peerIdKeyphrase);
       const peerId = await this.webrtcManager.initializePeer(this.peerIdKeyphrase);
       
       console.log('WebRTC initialized with peer ID:', peerId);
+      
+      // Update display with actual peer ID (might be different from keyphrase)
+      // But we'll keep showing the keyphrase for user reference
     } catch (error) {
       console.error('Failed to initialize WebRTC:', error);
       throw error;
@@ -196,6 +200,7 @@ class App {
     
     // Normalize keyphrase
     const normalizedKeyphrase = normalizeKeyphrase(peerIdKeyphrase);
+    console.log('Connecting to normalized keyphrase:', normalizedKeyphrase);
     
     // Disable button and show loading
     if (connectBtn) {
@@ -214,7 +219,23 @@ class App {
     }
     
     try {
+      // Ensure WebRTC is initialized
+      if (!this.webrtcManager || !this.webrtcManager.peer || !this.webrtcManager.peer.open) {
+        console.log('WebRTC not ready, waiting for initialization...');
+        // Wait a bit for peer to be ready
+        let waitCount = 0;
+        while ((!this.webrtcManager || !this.webrtcManager.peer || !this.webrtcManager.peer.open) && waitCount < 20) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          waitCount++;
+        }
+        
+        if (!this.webrtcManager || !this.webrtcManager.peer || !this.webrtcManager.peer.open) {
+          throw new Error('WebRTC peer not ready. Please wait a moment and try again.');
+        }
+      }
+      
       // Connect to peer
+      console.log('Attempting connection...');
       await this.webrtcManager.connectToPeer(normalizedKeyphrase);
       
       // Wait a moment for connection to establish

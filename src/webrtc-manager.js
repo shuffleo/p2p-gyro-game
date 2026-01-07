@@ -29,24 +29,38 @@ export class WebRTCManager {
     // Use the keyphrase directly as peer ID
     // PeerJS accepts alphanumeric and some special chars, but keyphrases use spaces
     // Convert spaces to hyphens for PeerJS compatibility
+    // Also store the original keyphrase for display
+    this.peerIdKeyphrase = peerIdKeyphrase;
     const peerId = peerIdKeyphrase.replace(/\s+/g, '-').toLowerCase();
+    
+    console.log('Initializing peer with keyphrase:', peerIdKeyphrase);
+    console.log('Converted peer ID:', peerId);
     
     return new Promise((resolve, reject) => {
       try {
         // Initialize PeerJS peer
+        // Note: PeerJS may assign a different ID if the requested one is taken
         this.peer = new Peer(peerId, {
           host: '0.peerjs.com',
           port: 443,
           path: '/',
           secure: true,
           config: this.config,
+          debug: 2, // Enable debug logging
         });
 
         this.peer.on('open', (id) => {
+          // PeerJS may return a different ID than requested
           this.peerId = id;
           this.connectionStatus = 'connected';
           this.updateConnectionStatus('connected', 'Peer initialized');
           console.log('PeerJS peer opened with ID:', id);
+          console.log('Requested peer ID was:', peerId);
+          
+          // If the ID is different, log it
+          if (id !== peerId) {
+            console.warn('PeerJS assigned different ID. Requested:', peerId, 'Got:', id);
+          }
           
           resolve(id);
         });
@@ -94,8 +108,15 @@ export class WebRTCManager {
     // Normalize keyphrase: convert spaces to hyphens for PeerJS compatibility
     const peerId = peerIdKeyphrase.replace(/\s+/g, '-').toLowerCase();
     
-    if (!this.peer || !this.peer.open) {
-      throw new Error('Peer not initialized');
+    console.log('Connecting to peer with keyphrase:', peerIdKeyphrase);
+    console.log('Converted peer ID:', peerId);
+    
+    if (!this.peer) {
+      throw new Error('Peer not initialized. Please wait for peer to initialize.');
+    }
+    
+    if (!this.peer.open) {
+      throw new Error('Peer not open yet. Please wait for peer to be ready.');
     }
 
     if (this.connections.has(peerId)) {
@@ -104,18 +125,30 @@ export class WebRTCManager {
     }
 
     return new Promise((resolve, reject) => {
+      let connectionTimeout;
+      let hasResolved = false;
+      
       try {
+        console.log('Creating data connection to:', peerId);
+        
         // Create data connection
         const dataConnection = this.peer.connect(peerId, {
           reliable: true, // Use reliable data channel
+          serialization: 'json', // Use JSON serialization
         });
 
         if (!dataConnection) {
           reject(new Error('Failed to create data connection'));
           return;
         }
+        
+        console.log('Data connection object created, waiting for open event...');
 
         dataConnection.on('open', () => {
+          if (hasResolved) return;
+          hasResolved = true;
+          clearTimeout(connectionTimeout);
+          
           console.log('Data connection opened to:', peerId);
           this.connections.set(peerId, dataConnection);
           this.reconnectAttempts.delete(peerId); // Reset reconnect attempts on success
@@ -155,18 +188,25 @@ export class WebRTCManager {
 
         dataConnection.on('error', (error) => {
           console.error('Data connection error:', error);
-          this.connections.delete(peerId);
-          const errorMsg = `Connection error to ${peerId}: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
-          this.notifyError(errorMsg);
-          reject(error);
+          clearTimeout(connectionTimeout);
+          
+          if (!hasResolved) {
+            hasResolved = true;
+            this.connections.delete(peerId);
+            const errorMsg = `Connection error to ${peerId}: ${error.message}\n\nError details (copy for debugging):\n${JSON.stringify(error, null, 2)}`;
+            this.notifyError(errorMsg);
+            reject(error);
+          }
         });
 
-        // Timeout after 10 seconds
-        setTimeout(() => {
-          if (!this.connections.has(peerId)) {
-            reject(new Error(`Connection timeout to ${peerId}`));
+        // Timeout after 15 seconds (increased from 10)
+        connectionTimeout = setTimeout(() => {
+          if (!hasResolved && !this.connections.has(peerId)) {
+            hasResolved = true;
+            console.error('Connection timeout to:', peerId);
+            reject(new Error(`Connection timeout to ${peerId}. The peer may not be online or may have a different ID.`));
           }
-        }, 10000);
+        }, 15000);
       } catch (error) {
         console.error('Failed to connect to peer:', error);
         reject(error);
