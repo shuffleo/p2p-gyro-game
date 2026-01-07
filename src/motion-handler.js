@@ -79,6 +79,12 @@ export class MotionHandler {
     // Get acceleration (with gravity removed if available)
     const acceleration = event.accelerationIncludingGravity || event.acceleration || { x: 0, y: 0, z: 0 };
     
+    // Check if acceleration data is valid
+    if (!acceleration || (acceleration.x === null && acceleration.y === null && acceleration.z === null)) {
+      console.warn('⚠️ Received null acceleration data');
+      return;
+    }
+    
     // Calculate velocity (integrate acceleration)
     const velocity = {
       x: this.lastVelocity.x + acceleration.x * deltaTime,
