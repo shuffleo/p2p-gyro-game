@@ -292,12 +292,15 @@ export class LightsaberVisualization {
       // Higher speed = less smoothing (more responsive)
       // Clamp smoothing between 0.05 and 0.2
       const speedFactor = Math.min(motionData.speed / 10, 1); // Normalize speed
-      this.rotationSmoothing = Math.max(0.05, Math.min(0.2, 0.2 - (speedFactor * 0.15)));
+      this.rotationSmoothing = Math.max(0.05, Math.min(0.2, this.baseRotationSmoothing - (speedFactor * 0.1)));
       
       console.log('⚡ Motion update:', {
         speed: motionData.speed,
         smoothing: this.rotationSmoothing
       });
+    } else {
+      // Reset to base smoothing if no speed data
+      this.rotationSmoothing = this.baseRotationSmoothing;
     }
     
     // Also use rotation rate if available for more responsive movement

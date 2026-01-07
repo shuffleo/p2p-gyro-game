@@ -457,6 +457,18 @@ class App {
         parsedData = JSON.parse(data);
       }
       
+      // Skip handshake messages
+      if (parsedData.type === 'handshake' || parsedData.type === 'connection_ack' || parsedData.type === 'connection_verify') {
+        return;
+      }
+      
+      // Skip quality ping/pong
+      if (parsedData.type === 'quality_ping' || parsedData.type === 'quality_pong') {
+        return;
+      }
+      
+      console.log('📥 Received data:', parsedData.type, 'from:', peerId, parsedData);
+      
       // Handle different data types
       switch (parsedData.type) {
         case 'gyro_data':
