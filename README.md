@@ -121,22 +121,22 @@ Repository: https://github.com/shuffleo/p2p-gyro-game.git
 
 ## Features
 
-- ✅ Real-time P2P communication via WebRTC (PeerJS)
-- ✅ Keyphrase-based peer IDs (6 words + 3 numbers) using niceware library
-- ✅ Gyroscope data collection from mobile devices
-- ✅ Motion/speed detection from device motion API
-- ✅ Microphone audio level detection
-- ✅ 3D lightsaber visualization with Three.js
+- Real-time P2P communication via WebRTC (PeerJS)
+- Keyphrase-based peer IDs (6 words + 3 numbers) using niceware library
+- Gyroscope data collection from mobile devices
+- Motion/speed detection from device motion API
+- Microphone audio level detection
+- 3D lightsaber visualization with Three.js
   - Glowing blade with multiple layers for glow effect
   - Hilt with metallic details
   - Smooth rotation animation
   - Dynamic blade length based on microphone volume
-- ✅ Connection quality indicators (RTT monitoring, quality levels)
-- ✅ Auto-create peer ID on page load
-- ✅ Copy-to-clipboard for peer IDs
-- ✅ Error handling with copy-to-clipboard for debugging
-- ✅ Responsive mobile-first UI
-- ✅ Automatic GitHub Pages deployment
+- Connection quality indicators (RTT monitoring, quality levels)
+- Auto-create peer ID on page load
+- Copy-to-clipboard for peer IDs
+- Error handling with copy-to-clipboard for debugging
+- Responsive mobile-first UI
+- Automatic GitHub Pages deployment
 
 ## Browser Support
 
@@ -163,17 +163,6 @@ p2p-gyro-game/
 └── package.json
 ```
 
-## Implementation Status
-
-- ✅ Project Setup & Basic UI
-- ✅ Keyphrase-based Peer ID System
-- ✅ WebRTC Integration (PeerJS)
-- ✅ Gyroscope Data Collection
-- ✅ Motion/Speed Detection
-- ✅ Microphone Audio Level Detection
-- ✅ Three.js Lightsaber Visualization
-- ✅ Integration & Polish
-- ✅ Deployment (GitHub Actions)
 
 ## License
 

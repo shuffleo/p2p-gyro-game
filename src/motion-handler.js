@@ -47,7 +47,8 @@ export class MotionHandler {
     // Listen to devicemotion events
     window.addEventListener('devicemotion', this.handleMotion.bind(this), true);
     
-    console.log('Motion listening started');
+    console.log('✅ Motion event listener added');
+    console.log('📡 Waiting for devicemotion events...');
   }
 
   stopListening() {

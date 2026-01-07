@@ -358,44 +358,63 @@ class App {
 
   async initializeMobileSensors() {
     try {
+      console.log('📱 Initializing mobile sensors...');
+      
       // Initialize gyroscope
+      console.log('🔄 Requesting gyroscope permission...');
       this.gyroscopeHandler = new GyroscopeHandler();
       const gyroPermission = await this.gyroscopeHandler.requestPermission();
       
       if (gyroPermission) {
+        console.log('✅ Gyroscope permission granted');
         this.gyroscopeHandler.startListening((data) => {
+          console.log('📤 Sending gyro data:', data);
           this.sendData(data);
         }, this.currentDeviceId);
+        console.log('✅ Gyroscope listening started');
       } else {
-        console.warn('Gyroscope permission denied');
+        console.error('❌ Gyroscope permission denied');
+        alert('Gyroscope permission denied. Please allow access to device orientation in your browser settings.');
       }
       
       // Initialize motion handler
+      console.log('🏃 Requesting motion permission...');
       this.motionHandler = new MotionHandler();
       const motionPermission = await this.motionHandler.requestPermission();
       
       if (motionPermission) {
+        console.log('✅ Motion permission granted');
         this.motionHandler.startListening((data) => {
+          console.log('📤 Sending motion data:', data);
           this.sendData(data);
         }, this.currentDeviceId);
+        console.log('✅ Motion listening started');
       } else {
-        console.warn('Motion permission denied');
+        console.error('❌ Motion permission denied');
+        alert('Motion permission denied. Please allow access to device motion in your browser settings.');
       }
       
       // Initialize microphone
+      console.log('🎤 Requesting microphone permission...');
       this.microphoneHandler = new MicrophoneHandler();
       const micPermission = await this.microphoneHandler.requestPermission();
       
       if (micPermission) {
+        console.log('✅ Microphone permission granted');
         await this.microphoneHandler.startListening((data) => {
+          console.log('📤 Sending audio data:', data);
           this.sendData(data);
         }, this.currentDeviceId);
+        console.log('✅ Microphone listening started');
       } else {
-        console.warn('Microphone permission denied');
+        console.error('❌ Microphone permission denied');
+        alert('Microphone permission denied. Please allow access to microphone in your browser settings.');
       }
       
+      console.log('✅ All mobile sensors initialized');
+      
     } catch (error) {
-      console.error('Failed to initialize mobile sensors:', error);
+      console.error('❌ Failed to initialize mobile sensors:', error);
       showErrorWithCopy(`Failed to initialize sensors: ${error.message}`);
     }
   }
@@ -456,7 +475,15 @@ class App {
 
   sendData(data) {
     if (this.webrtcManager && this.isConnected) {
-      this.webrtcManager.sendData(data);
+      try {
+        this.webrtcManager.sendData(data);
+      } catch (error) {
+        console.error('❌ Failed to send data:', error);
+      }
+    } else {
+      console.warn('⚠️ Cannot send data - WebRTC not ready or not connected');
+      console.log('WebRTC Manager:', this.webrtcManager ? 'exists' : 'null');
+      console.log('Is Connected:', this.isConnected);
     }
   }
 

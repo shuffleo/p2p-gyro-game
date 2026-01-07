@@ -66,7 +66,8 @@ export class GyroscopeHandler {
     // Listen to deviceorientation events
     window.addEventListener('deviceorientation', this.handleOrientation.bind(this), true);
     
-    console.log('Gyroscope listening started');
+    console.log('✅ Gyroscope event listener added');
+    console.log('📡 Waiting for deviceorientation events...');
   }
 
   stopListening() {
